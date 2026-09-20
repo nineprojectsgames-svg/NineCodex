@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f0c09">
 <title>Codex — Creador de Historias</title>
-<!-- ================= FIREBASE ================= -->
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -994,7 +994,7 @@ select{cursor:pointer}
 <script>
 
 /* ============================================================
-   0. FIREBASE — configuración y estado
+   0. FIREBASE — configuración
 ============================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyDw4kHO7aTDx_5PZpyNuDIVv4bd5852tq8",
@@ -1005,7 +1005,6 @@ const firebaseConfig = {
   appId: "1:583559903976:web:1a5b44e4da9f510078a75d"
 };
 
-// Inicializar Firebase (solo si no está ya inicializado)
 let fbApp, fbAuth, fbDb;
 try{
   fbApp = firebase.apps && firebase.apps.length
@@ -1017,9 +1016,28 @@ try{
   console.warn('Firebase no pudo inicializarse:', err);
 }
 
-let currentUser = null;       // usuario logueado
-let cloudEnabled = true;      // si hay conexión a Firebase
-let cloudSyncing = false;     // evitar loops de guardado
+let currentUser = null;
+
+/* ============================================================
+   0.1 GITHUB STORAGE — configuración para imágenes
+============================================================ */
+const GITHUB_CONFIG_KEY = 'codex_github_config';
+let githubConfig = {
+  owner: '',
+  repo: '',
+  branch: 'main',
+  token: ''
+};
+try{
+  const saved = localStorage.getItem(GITHUB_CONFIG_KEY);
+  if(saved) githubConfig = { ...githubConfig, ...JSON.parse(saved) };
+}catch(e){}
+function saveGithubConfig(){
+  try{ localStorage.setItem(GITHUB_CONFIG_KEY, JSON.stringify(githubConfig)); }catch(e){}
+}
+function githubReady(){
+  return !!(githubConfig.owner && githubConfig.repo && githubConfig.token);
+}
 
 /* ============================================================
    1. UTILIDADES
@@ -1191,72 +1209,7 @@ function saveDB(){
     setSaveState('⚠ Sin espacio');
     toast('No se pudo guardar: almacenamiento lleno. Exporta tu proyecto.');
   }
-  // Subir a Firebase en segundo plano
   syncToCloud();
-}
-
-/* ---------- Sincronización con Firebase ---------- */
-async function syncToCloud(){
-  if(!currentUser || !cloudEnabled || cloudSyncing) return;
-  cloudSyncing = true;
-  setSaveState('☁ Subiendo…');
-  try{
-    const ref = fbDb.collection('users').doc(currentUser.uid);
-    await ref.set({
-      email: currentUser.email,
-      projects: DB.projects,
-      currentId: DB.currentId,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-    setSaveState('☁ Guardado ✓');
-  }catch(e){
-    console.warn('Error subiendo a Firebase:', e);
-    setSaveState('⚠ Sin conexión');
-  }finally{
-    cloudSyncing = false;
-  }
-}
-
-async function loadFromCloud(){
-  if(!currentUser || !cloudEnabled) return;
-  setSaveState('☁ Descargando…');
-  try{
-    const ref = fbDb.collection('users').doc(currentUser.uid);
-    const snap = await ref.get();
-    if(snap.exists){
-      const data = snap.data();
-      if(Array.isArray(data.projects)){
-        // Combinar: proyectos locales + proyectos en la nube (por updatedAt más reciente)
-        const cloudProjects = data.projects;
-        const localProjects = DB.projects || [];
-        const merged = new Map();
-        // Primero los locales
-        localProjects.forEach(p => merged.set(p.id, p));
-        // Luego los de la nube (sobrescriben si son más nuevos)
-        cloudProjects.forEach(p => {
-          const local = merged.get(p.id);
-          if(!local || (p.updatedAt||0) > (local.updatedAt||0)){
-            merged.set(p.id, p);
-          }
-        });
-        DB.projects = [...merged.values()];
-        DB.currentId = data.currentId || DB.currentId;
-        DB.projects.forEach(p => migrateProject(p));
-        P = DB.projects.find(p => p.id === DB.currentId) || DB.projects[0] || null;
-        if(P) DB.currentId = P.id;
-        applyTheme();
-        try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){}
-        render();
-        setSaveState('☁ Sincronizado ✓');
-      }
-    } else {
-      // Usuario nuevo en la nube — subir lo que tenga local
-      await syncToCloud();
-    }
-  }catch(e){
-    console.warn('Error bajando de Firebase:', e);
-    setSaveState('⚠ Sin conexión');
-  }
 }
 
 function touch(){
@@ -1727,13 +1680,13 @@ function createEditor(value, onChange){
     saveRange(area);
     const inp = document.createElement('input');
     inp.type='file'; inp.accept='image/*';
-    inp.onchange = async ()=>{
-      const f = inp.files[0]; if(!f) return;
-      try{
-        const dataUrl = await compressImage(f);
-        insertHTML(`<img src="${dataUrl}"><p><br></p>`);
-      }catch(e){ toast('No se pudo procesar la imagen'); }
-    };
+ inp.onchange = async ()=>{
+  const f = inp.files[0]; if(!f) return;
+  try{
+    const url = await uploadImageSmart(f, 'inline');
+    insertHTML(`<img src="${url}"><p><br></p>`);
+  }catch(e){ toast('No se pudo procesar la imagen'); }
+};
     openModal(`<h3>🖼 Insertar imagen</h3>
       <label class="field"><span>URL de imagen</span><input data-u placeholder="https://..." autofocus></label>
       <div class="modal-actions">
@@ -1834,20 +1787,20 @@ function createEditor(value, onChange){
   area.addEventListener('keyup', ()=> saveRange(area));
   area.addEventListener('mouseup', ()=> saveRange(area));
   area.addEventListener('input', ()=> fire());
-  area.addEventListener('paste', e=>{
-    const items = e.clipboardData && e.clipboardData.items;
-    if(items){
-      for(const it of items){
-        if(it.type.indexOf('image') === 0){
-          e.preventDefault();
-          const f = it.getAsFile();
-          compressImage(f).then(dataUrl => insertHTML(`<img src="${dataUrl}"><p><br></p>`))
-            .catch(()=> toast('No se pudo procesar la imagen'));
-          return;
-        }
+area.addEventListener('paste', e=>{
+  const items = e.clipboardData && e.clipboardData.items;
+  if(items){
+    for(const it of items){
+      if(it.type.indexOf('image') === 0){
+        e.preventDefault();
+        const f = it.getAsFile();
+        uploadImageSmart(f, 'paste').then(url => insertHTML(`<img src="${url}"><p><br></p>`))
+          .catch(()=> toast('No se pudo procesar la imagen'));
+        return;
       }
     }
-  });
+  }
+});
 
   return wrap;
 }
@@ -2142,13 +2095,13 @@ function imagePicker(current, onChange){
     else { prev.style.backgroundImage=''; prev.textContent='Sin imagen'; }
   };
   paint(current);
-  inp.onchange = async ()=>{
-    const f = inp.files[0]; if(!f) return;
-    try{
-      const dataUrl = await compressImage(f);
-      paint(dataUrl); onChange(dataUrl);
-    }catch(e){ toast('No se pudo procesar la imagen'); }
-  };
+inp.onchange = async ()=>{
+  const f = inp.files[0]; if(!f) return;
+  try{
+    const url = await uploadImageSmart(f, 'picker');
+    paint(url); onChange(url);
+  }catch(e){ toast('No se pudo procesar la imagen'); }
+};
   w.querySelector('[data-up]').onclick = ()=> inp.click();
   w.querySelector('[data-url]').onclick = ()=>{
     pedir('🌐 Imagen desde URL', [{key:'u', label:'URL', value:''}]).then(v=>{
@@ -6495,12 +6448,12 @@ function viewWorld(){
     paintMap();
     const mInp = document.createElement('input'); mInp.type='file'; mInp.accept='image/*';
     mInp.onchange = async ()=>{
-      const f = mInp.files[0]; if(!f) return;
-      try{
-        const dataUrl = await compressImage(f);
-        map.image = dataUrl; touch(); paintMap(); drawMap();
-      }catch(e){ toast('No se pudo procesar la imagen'); }
-    };
+  const f = mInp.files[0]; if(!f) return;
+  try{
+    const url = await uploadImageSmart(f, 'maps');
+    map.image = url; touch(); paintMap(); drawMap();
+  }catch(e){ toast('No se pudo procesar la imagen'); }
+};
     mapImgPick.querySelector('[data-up]').onclick = ()=> mInp.click();
     mapImgPick.querySelector('[data-del]').onclick = ()=>{ map.image=''; touch(); paintMap(); drawMap(); };
     mapBox.appendChild(mapImgPick);
@@ -7555,90 +7508,296 @@ $('#fileImport').onchange = e=>{
 };
 
 /* ============================================================
-   11. AUTENTICACIÓN Y ARRANQUE
+   11. ARRANQUE
 ============================================================ */
+function init(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw) DB = JSON.parse(raw);
+  }catch(e){ console.warn('DB corrupta'); }
+  if(!DB || !Array.isArray(DB.projects)) DB = { projects: [], currentId: null };
+  P = DB.projects.find(p=>p.id === DB.currentId) || null;
+  if(!P && DB.projects.length){ P = DB.projects[0]; DB.currentId = P.id; }
+  if(!P) view = 'library';
+  DB.projects.forEach(p => migrateProject(p));
+  applyTheme();
 
-/* ---------- UI: modal de login/registro ---------- */
-function openAuthModal(tab = 'login'){
-  openModal(`
-    <h3 id="authTitle">${tab === 'login' ? '🔐 Iniciar sesión' : '✨ Crear cuenta'}</h3>
-    <div style="display:flex;gap:6px;margin-bottom:14px">
-      <button class="btn small" data-tab="login"   style="${tab==='login'?'background:var(--gold);color:#1a130a;border-color:var(--gold)':''}">Iniciar sesión</button>
-      <button class="btn small" data-tab="register" style="${tab==='register'?'background:var(--gold);color:#1a130a;border-color:var(--gold)':''}">Crear cuenta</button>
-    </div>
-    <label class="field"><span>Correo electrónico</span>
-      <input type="email" data-email placeholder="tu@correo.com" autocomplete="email"></label>
-    <label class="field"><span>Contraseña ${tab==='register'?'(mínimo 6 caracteres)':''}</span>
-      <input type="password" data-pass placeholder="••••••" autocomplete="${tab==='register'?'new-password':'current-password'}"></label>
-    <div data-err style="color:#e2a49c;font-size:13px;min-height:18px;margin-bottom:6px"></div>
-    <div class="modal-actions" style="flex-direction:column;gap:8px">
-      <button class="btn primary" data-submit style="width:100%">
-        ${tab === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
-      </button>
-      <button class="btn ghost" data-cancel style="width:100%">Cancelar</button>
-      <button class="btn ghost" data-forgot style="width:100%;font-size:12px">¿Olvidaste tu contraseña?</button>
-    </div>
-  `, m => {
-    const emailInp = m.querySelector('[data-email]');
-    const passInp  = m.querySelector('[data-pass]');
-    const errEl    = m.querySelector('[data-err]');
-    const submit   = m.querySelector('[data-submit]');
-    let currentTab = tab;
+  try{ document.execCommand('defaultParagraphSeparator', false, 'p'); }catch(e){}
+  render();
+  setSaveState(P ? 'Guardado ✓' : '');
+  if(DB.projects.length) saveDB();
 
-    const setTab = (t) => {
-      closeModal();
-      openAuthModal(t);
-    };
-    m.querySelectorAll('[data-tab]').forEach(b => {
-      b.onclick = () => setTab(b.dataset.tab);
-    });
-
-    const showErr = (msg) => { errEl.textContent = msg; };
-
-    const doAuth = async () => {
-      const email = emailInp.value.trim();
-      const pass  = passInp.value;
-      if(!email || !pass){ showErr('Completá correo y contraseña'); return; }
-      if(currentTab === 'register' && pass.length < 6){ showErr('La contraseña debe tener al menos 6 caracteres'); return; }
-
-      submit.disabled = true;
-      submit.textContent = 'Procesando…';
-      try{
-        if(currentTab === 'login'){
-          await fbAuth.signInWithEmailAndPassword(email, pass);
-        } else {
-          await fbAuth.createUserWithEmailAndPassword(email, pass);
-        }
-        closeModal();
-      }catch(err){
-        const msg = traducirErrorAuth(err.code || err.message);
-        showErr(msg);
-        submit.disabled = false;
-        submit.textContent = currentTab === 'login' ? 'Iniciar sesión' : 'Crear cuenta';
-      }
-    };
-
-    submit.onclick = doAuth;
-    m.addEventListener('keydown', e => {
-      if(e.key === 'Enter') doAuth();
-    });
-    m.querySelector('[data-cancel]').onclick = closeModal;
-    m.querySelector('[data-forgot]').onclick = async () => {
-      const email = emailInp.value.trim();
-      if(!email){ showErr('Escribí tu correo primero'); return; }
-      try{
-        await fbAuth.sendPasswordResetEmail(email);
-        toast('Te enviamos un correo para restablecer tu contraseña ✓');
-        closeModal();
-      }catch(err){
-        showErr(traducirErrorAuth(err.code || err.message));
-      }
-    };
-
-    setTimeout(() => emailInp.focus(), 80);
+  // Cerrar sidebar al cambiar de tamaño a escritorio
+  window.addEventListener('resize', ()=>{
+    if(window.innerWidth > 820) closeSidebarMobile();
   });
 }
 
+/* ============================================================
+   SINCRONIZACIÓN CON FIREBASE
+============================================================ */
+let cloudSyncing = false;
+
+async function syncToCloud(){
+  if(!currentUser || !fbDb || cloudSyncing) return;
+  cloudSyncing = true;
+  setSaveState('☁ Subiendo…');
+  try{
+    const ref = fbDb.collection('users').doc(currentUser.uid);
+    await ref.set({
+      email: currentUser.email,
+      projects: DB.projects,
+      currentId: DB.currentId,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    setSaveState('☁ Guardado ✓');
+  }catch(e){
+    console.warn('Error subiendo a Firebase:', e);
+    setSaveState('⚠ Sin conexión');
+  }finally{
+    cloudSyncing = false;
+  }
+}
+
+async function loadFromCloud(){
+  if(!currentUser || !fbDb) return;
+  setSaveState('☁ Descargando…');
+  try{
+    const ref = fbDb.collection('users').doc(currentUser.uid);
+    const snap = await ref.get();
+    if(snap.exists){
+      const data = snap.data();
+      if(Array.isArray(data.projects)){
+        const cloudProjects = data.projects;
+        const localProjects = DB.projects || [];
+        const merged = new Map();
+        localProjects.forEach(p => merged.set(p.id, p));
+        cloudProjects.forEach(p => {
+          const local = merged.get(p.id);
+          if(!local || (p.updatedAt||0) > (local.updatedAt||0)){
+            merged.set(p.id, p);
+          }
+        });
+        DB.projects = [...merged.values()];
+        DB.currentId = data.currentId || DB.currentId;
+        DB.projects.forEach(p => migrateProject(p));
+        P = DB.projects.find(p => p.id === DB.currentId) || DB.projects[0] || null;
+        if(P) DB.currentId = P.id;
+        applyTheme();
+        try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){}
+        render();
+        setSaveState('☁ Sincronizado ✓');
+      }
+    } else {
+      await syncToCloud();
+    }
+  }catch(e){
+    console.warn('Error bajando de Firebase:', e);
+    setSaveState('⚠ Sin conexión');
+  }
+}
+
+/* ============================================================
+   GITHUB STORAGE — imágenes
+============================================================ */
+
+/* Comprime un archivo de imagen a JPEG */
+function compressFileToBlob(file, maxDim, quality){
+  maxDim = maxDim || 1600;
+  quality = quality || 0.85;
+  return new Promise((resolve, reject) => {
+    if(!file) return reject(new Error('Sin archivo'));
+    if(!/^image\//.test(file.type)) return reject(new Error('No es imagen'));
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        try{
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if(!w || !h) return resolve(file);
+          const scale = Math.min(1, maxDim / Math.max(w, h));
+          w = Math.max(1, Math.round(w * scale));
+          h = Math.max(1, Math.round(h * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob(b => {
+            if(b) resolve(b); else reject(new Error('No se pudo comprimir'));
+          }, 'image/jpeg', quality);
+        }catch(e){ reject(e); }
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function dataUrlToBlob(dataUrl){
+  const res = await fetch(dataUrl);
+  return await res.blob();
+}
+
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = String(reader.result).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function uploadToGithub(blob, folder, ext){
+  folder = folder || 'images';
+  ext = ext || 'jpg';
+  if(!githubReady()) throw new Error('GitHub no está configurado');
+  const filename = Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
+  const path = (folder + '/' + filename).replace(/\/+/g, '/');
+  const apiUrl = 'https://api.github.com/repos/' + githubConfig.owner + '/' + githubConfig.repo + '/contents/' + path;
+  const base64 = await blobToBase64(blob);
+  const body = {
+    message: 'Subir imagen ' + filename,
+    content: base64,
+    branch: githubConfig.branch || 'main'
+  };
+  const res = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'token ' + githubConfig.token,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    const errText = await res.text();
+    console.error('Error subiendo a GitHub:', res.status, errText);
+    if(res.status === 401) throw new Error('Token de GitHub inválido o expirado');
+    if(res.status === 404) throw new Error('Repo no encontrado. Revisá usuario y nombre');
+    if(res.status === 403) throw new Error('Sin permisos. Verificá que el token tenga scope "repo"');
+    if(res.status === 422) throw new Error('Archivo ya existe o nombre inválido');
+    throw new Error('Error ' + res.status + ' al subir a GitHub');
+  }
+  return 'https://raw.githubusercontent.com/' + githubConfig.owner + '/' + githubConfig.repo + '/' + (githubConfig.branch || 'main') + '/' + path;
+}
+
+/* Sube una imagen de forma inteligente:
+   - Si GitHub está listo → GitHub
+   - Si no → base64 comprimido (funciona igual, pero pesa más) */
+async function uploadImageSmart(file, folder){
+  folder = folder || 'images';
+  if(githubReady()){
+    try{
+      const blob = await compressFileToBlob(file);
+      return await uploadToGithub(blob, folder, 'jpg');
+    }catch(e){
+      console.warn('Error subiendo a GitHub, cae a base64:', e);
+      toast('⚠ No se pudo subir a GitHub, se guarda local');
+    }
+  }
+  return await compressImage(file);
+}
+
+/* Migrar imágenes base64 a GitHub */
+async function migrateProjectImagesToGithub(){
+  if(!githubReady()){ toast('Configurá GitHub primero'); return; }
+  if(!P){ toast('No hay proyecto abierto'); return; }
+  const ok = await confirmar('Se van a subir TODAS las imágenes base64 de este proyecto a GitHub. Puede tardar. ¿Continuar?');
+  if(!ok) return;
+  toast('Migrando imágenes… no cierres la pestaña');
+  let count = 0;
+  async function uploadBase64(dataUrl, folder){
+    const blob = await dataUrlToBlob(dataUrl);
+    const url = await uploadToGithub(blob, folder, 'jpg');
+    count++;
+    return url;
+  }
+  try{
+    if(P.image && P.image.startsWith('data:image/')){
+      P.image = await uploadBase64(P.image, 'covers');
+    }
+    for(const list of [P.characters, P.bestiary, P.races, P.lore]){
+      if(!Array.isArray(list)) continue;
+      for(const item of list){
+        if(item.image && item.image.startsWith('data:image/')){
+          item.image = await uploadBase64(item.image, 'profiles');
+        }
+        await migrateHtmlImagesToGithub(item, uploadBase64);
+      }
+    }
+    for(const e of (P.story.events || [])){
+      if(e.image && e.image.startsWith('data:image/')){
+        e.image = await uploadBase64(e.image, 'events');
+      }
+      await migrateHtmlImagesToGithub(e, uploadBase64);
+    }
+    for(const c of (P.story.chapters || [])) await migrateHtmlImagesToGithub(c, uploadBase64);
+    for(const a of (P.story.acts || [])) await migrateHtmlImagesToGithub(a, uploadBase64);
+    for(const i of (P.story.ideas || [])) await migrateHtmlImagesToGithub(i, uploadBase64);
+    for(const n of (P.notes || [])) await migrateHtmlImagesToGithub(n, uploadBase64);
+    await (async function walkZones(arr){
+      for(const z of (arr || [])){
+        if(z.image && z.image.startsWith('data:image/')){
+          z.image = await uploadBase64(z.image, 'zones');
+        }
+        if(z.map && z.map.image && z.map.image.startsWith('data:image/')){
+          z.map.image = await uploadBase64(z.map.image, 'maps');
+        }
+        await migrateHtmlImagesToGithub(z, uploadBase64);
+        await walkZones(z.children);
+      }
+    })(P.world);
+    for(const t of (P.story.timelines || [])) await migrateHtmlImagesToGithub(t, uploadBase64);
+    await syncToCloud();
+    toast('¡Migración completa! ' + count + ' imágenes subidas ✓');
+    render();
+  }catch(e){
+    console.error(e);
+    toast('Error durante la migración: ' + e.message);
+  }
+}
+
+async function migrateHtmlImagesToGithub(item, uploader){
+  if(!item) return;
+  const fields = ['content', 'history', 'desc', 'description', 'short'];
+  for(const field of fields){
+    if(typeof item[field] === 'string' && item[field].includes('data:image/')){
+      let html = item[field];
+      const matches = [...html.matchAll(/<img[^>]+src="(data:image\/[^"]+)"/g)];
+      for(const m of matches){
+        try{
+          const url = await uploader(m[1], 'inline');
+          html = html.replace(m[1], url);
+        }catch(e){ console.warn(e); }
+      }
+      item[field] = html;
+    }
+    if(Array.isArray(item.sections)){
+      for(const sec of item.sections){
+        if(typeof sec.content === 'string' && sec.content.includes('data:image/')){
+          let html = sec.content;
+          const matches = [...html.matchAll(/<img[^>]+src="(data:image\/[^"]+)"/g)];
+          for(const m of matches){
+            try{
+              const url = await uploader(m[1], 'inline');
+              html = html.replace(m[1], url);
+            }catch(e){ console.warn(e); }
+          }
+          sec.content = html;
+        }
+      }
+    }
+  }
+}
+
+/* ============================================================
+   AUTENTICACIÓN — UI
+============================================================ */
 function traducirErrorAuth(code){
   const map = {
     'auth/invalid-email': 'El correo no es válido.',
@@ -7654,90 +7813,231 @@ function traducirErrorAuth(code){
   return map[code] || 'Error: ' + code;
 }
 
-/* ---------- Barra de usuario en el topbar ---------- */
+function openAuthModal(tab){
+  tab = tab || 'login';
+  openModal(`
+    <h3 id="authTitle">${tab === 'login' ? '🔐 Iniciar sesión' : '✨ Crear cuenta'}</h3>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="btn small" data-tab="login" style="${tab==='login'?'background:var(--gold);color:#1a130a;border-color:var(--gold)':''}">Iniciar sesión</button>
+      <button class="btn small" data-tab="register" style="${tab==='register'?'background:var(--gold);color:#1a130a;border-color:var(--gold)':''}">Crear cuenta</button>
+    </div>
+    <label class="field"><span>Correo electrónico</span>
+      <input type="email" data-email placeholder="tu@correo.com" autocomplete="email"></label>
+    <label class="field"><span>Contraseña ${tab==='register'?'(mínimo 6 caracteres)':''}</span>
+      <input type="password" data-pass placeholder="••••••"></label>
+    <div data-err style="color:#e2a49c;font-size:13px;min-height:18px;margin-bottom:6px"></div>
+    <div class="modal-actions" style="flex-direction:column;gap:8px">
+      <button class="btn primary" data-submit style="width:100%">
+        ${tab === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
+      </button>
+      <button class="btn ghost" data-cancel style="width:100%">Cancelar</button>
+      <button class="btn ghost" data-forgot style="width:100%;font-size:12px">¿Olvidaste tu contraseña?</button>
+    </div>
+  `, m => {
+    const emailInp = m.querySelector('[data-email]');
+    const passInp  = m.querySelector('[data-pass]');
+    const errEl    = m.querySelector('[data-err]');
+    const submit   = m.querySelector('[data-submit]');
+    let currentTab = tab;
+
+    m.querySelectorAll('[data-tab]').forEach(b => {
+      b.onclick = () => { closeModal(); openAuthModal(b.dataset.tab); };
+    });
+
+    const doAuth = async () => {
+      const email = emailInp.value.trim();
+      const pass  = passInp.value;
+      if(!email || !pass){ errEl.textContent = 'Completá correo y contraseña'; return; }
+      if(currentTab === 'register' && pass.length < 6){ errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; return; }
+      submit.disabled = true;
+      submit.textContent = 'Procesando…';
+      try{
+        if(currentTab === 'login'){
+          await fbAuth.signInWithEmailAndPassword(email, pass);
+        } else {
+          await fbAuth.createUserWithEmailAndPassword(email, pass);
+        }
+        closeModal();
+      }catch(err){
+        errEl.textContent = traducirErrorAuth(err.code || err.message);
+        submit.disabled = false;
+        submit.textContent = currentTab === 'login' ? 'Iniciar sesión' : 'Crear cuenta';
+      }
+    };
+
+    submit.onclick = doAuth;
+    m.addEventListener('keydown', e => { if(e.key === 'Enter') doAuth(); });
+    m.querySelector('[data-cancel]').onclick = closeModal;
+    m.querySelector('[data-forgot]').onclick = async () => {
+      const email = emailInp.value.trim();
+      if(!email){ errEl.textContent = 'Escribí tu correo primero'; return; }
+      try{
+        await fbAuth.sendPasswordResetEmail(email);
+        toast('Te enviamos un correo para restablecer tu contraseña ✓');
+        closeModal();
+      }catch(err){
+        errEl.textContent = traducirErrorAuth(err.code || err.message);
+      }
+    };
+
+    setTimeout(() => emailInp.focus(), 80);
+  });
+}
+
 function renderUserBar(){
   const existing = document.getElementById('userBar');
   if(existing) existing.remove();
-
   const bar = document.createElement('div');
   bar.id = 'userBar';
   bar.style.cssText = 'display:flex;gap:6px;align-items:center;flex:0 0 auto';
-
   if(currentUser){
     const email = currentUser.email || '';
     const initials = email.slice(0, 2).toUpperCase();
     bar.innerHTML = `
       <span title="${esc(email)}" style="
+        position:relative;
         display:inline-flex;align-items:center;justify-content:center;
         width:30px;height:30px;border-radius:50%;
         background:linear-gradient(var(--gold),var(--gold-soft));
         color:#1a130a;font-weight:600;font-size:12px;
         border:1px solid var(--gold-soft);cursor:pointer;
-      " data-menu>${esc(initials)}</span>
+      " data-menu>${esc(initials)}
+        <span style="
+          position:absolute;bottom:-2px;right:-2px;
+          width:14px;height:14px;border-radius:50%;
+          background:${githubReady() ? 'var(--green)' : 'var(--red)'};
+          border:2px solid var(--bg);font-size:9px;color:#fff;
+          display:flex;align-items:center;justify-content:center;
+        ">${githubReady() ? '✓' : '!'}</span>
+      </span>
     `;
     bar.querySelector('[data-menu]').onclick = openUserMenu;
   } else {
-    bar.innerHTML = `<button class="btn small primary" data-login>Entrar</button>`;
+    bar.innerHTML = '<button class="btn small primary" data-login>Entrar</button>';
     bar.querySelector('[data-login]').onclick = () => openAuthModal('login');
   }
   document.querySelector('.topbar').appendChild(bar);
 }
 
 function openUserMenu(){
-  $$('.user-menu-pop').forEach(x => x.remove());
-  const pop = make(`<div class="user-menu-pop"></div>`);
+  document.querySelectorAll('.user-menu-pop').forEach(x => x.remove());
+  const pop = make('<div class="user-menu-pop"></div>');
   Object.assign(pop.style, {
     position:'fixed', zIndex:'300',
     background:'linear-gradient(180deg,var(--paper2),var(--bg2))',
     border:'1px solid var(--gold-soft)', borderRadius:'8px',
-    padding:'6px', minWidth:'220px', boxShadow:'0 14px 40px #000c'
+    padding:'6px', minWidth:'240px', boxShadow:'0 14px 40px #000c'
   });
   pop.innerHTML = `
     <div style="padding:8px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);margin-bottom:4px">
       ${esc(currentUser.email||'')}
     </div>
     <div class="pickitem" data-sync>☁ Sincronizar ahora</div>
+    <div class="pickitem" data-github>
+      ${githubReady() ? '✓ GitHub Storage configurado' : '⚙ Configurar GitHub Storage (imágenes)'}
+    </div>
+    ${githubReady() ? '<div class="pickitem" data-migrate>🖼 Migrar imágenes a GitHub</div>' : ''}
     <div class="pickitem" data-export>📤 Exportar mis proyectos</div>
     <div class="pickitem" data-logout style="color:#e2a49c">🚪 Cerrar sesión</div>
   `;
   document.body.appendChild(pop);
 
-  const r = document.querySelector('#userBar [data-menu]').getBoundingClientRect();
+  const menuBtn = document.querySelector('#userBar [data-menu]');
+  const r = menuBtn.getBoundingClientRect();
   pop.style.top = (r.bottom + 6) + 'px';
   pop.style.right = (window.innerWidth - r.right) + 'px';
 
   pop.querySelector('[data-sync]').onclick = async ()=>{ pop.remove(); await loadFromCloud(); toast('Sincronizado ✓'); };
+  pop.querySelector('[data-github]').onclick = ()=>{ pop.remove(); openGithubConfigModal(); };
+  const migBtn = pop.querySelector('[data-migrate]');
+  if(migBtn) migBtn.onclick = ()=>{ pop.remove(); migrateProjectImagesToGithub(); };
   pop.querySelector('[data-export]').onclick = ()=>{ pop.remove(); openExportModal(); };
-  pop.querySelector('[data-logout]').onclick = async ()=>{
-    pop.remove();
-    try{ await fbAuth.signOut(); }catch(e){}
-  };
+  pop.querySelector('[data-logout]').onclick = async ()=>{ pop.remove(); try{ await fbAuth.signOut(); }catch(e){} };
 
   const close = (e)=>{ if(!pop.contains(e.target) && !e.target.closest('#userBar')){ pop.remove(); document.removeEventListener('mousedown', close); } };
   setTimeout(()=> document.addEventListener('mousedown', close), 0);
 }
 
-/* ---------- Observador de sesión ---------- */
-function setupAuthObserver(){
-  if(!fbAuth) return;
-  fbAuth.onAuthStateChanged(async (user) => {
-    currentUser = user || null;
-    renderUserBar();
+function openGithubConfigModal(){
+  openModal(`<h3>⚙ Configurar GitHub Storage</h3>
+    <p class="hint">Las imágenes se subirán a tu repositorio de GitHub. Necesitás un repo público y un token personal.</p>
+    <label class="field"><span>Tu usuario de GitHub</span>
+      <input data-owner placeholder="ej: juanperez" value="${esc(githubConfig.owner||'')}" autofocus></label>
+    <label class="field"><span>Nombre del repositorio</span>
+      <input data-repo placeholder="ej: codex-imagenes" value="${esc(githubConfig.repo||'')}"></label>
+    <label class="field"><span>Rama</span>
+      <input data-branch placeholder="main" value="${esc(githubConfig.branch||'main')}"></label>
+    <label class="field"><span>Token personal (empieza con ghp_)</span>
+      <input data-token type="password" placeholder="ghp_..." value="${esc(githubConfig.token||'')}"></label>
+    <div data-status style="font-size:12px;color:var(--muted);margin-top:6px;min-height:16px"></div>
+    <div class="modal-actions">
+      <button class="btn" data-test>🧪 Probar conexión</button>
+      <button class="btn" data-cancel>Cancelar</button>
+      <button class="btn primary" data-save>Guardar</button>
+    </div>`,
+    m=>{
+      const statusEl = m.querySelector('[data-status]');
+      const getVals = () => ({
+        owner: m.querySelector('[data-owner]').value.trim(),
+        repo: m.querySelector('[data-repo]').value.trim(),
+        branch: m.querySelector('[data-branch]').value.trim() || 'main',
+        token: m.querySelector('[data-token]').value.trim()
+      });
 
-    if(user){
-      // Usuario logueado: bajar sus proyectos
-      await loadFromCloud();
-      setSaveState('☁ Conectado');
-    } else {
-      // Sin sesión: trabajar solo con localStorage
-      setSaveState(P ? 'Guardado ✓' : '');
-    }
-  });
+      m.querySelector('[data-test]').onclick = async ()=>{
+        const vals = getVals();
+        if(!vals.owner || !vals.repo || !vals.token){
+          statusEl.textContent = '⚠ Completá todos los campos';
+          statusEl.style.color = '#e2a49c';
+          return;
+        }
+        statusEl.textContent = '⏳ Probando…';
+        statusEl.style.color = 'var(--gold)';
+        try{
+          const apiUrl = 'https://api.github.com/repos/' + vals.owner + '/' + vals.repo;
+          const res = await fetch(apiUrl, { headers: { 'Authorization': 'token ' + vals.token } });
+          if(!res.ok){
+            if(res.status === 404) statusEl.textContent = '❌ Repo no encontrado o token sin permisos';
+            else if(res.status === 401) statusEl.textContent = '❌ Token inválido';
+            else statusEl.textContent = '❌ Error ' + res.status;
+            statusEl.style.color = '#e2a49c';
+            return;
+          }
+          const contentRes = await fetch(apiUrl + '/contents/', { headers: { 'Authorization': 'token ' + vals.token } });
+          if(!contentRes.ok){
+            statusEl.textContent = '⚠ El repo funciona pero el token no puede escribir';
+            statusEl.style.color = '#e2a49c';
+            return;
+          }
+          statusEl.textContent = '✓ ¡Todo funciona correctamente!';
+          statusEl.style.color = 'var(--green)';
+        }catch(e){
+          statusEl.textContent = '❌ Error de red: ' + e.message;
+          statusEl.style.color = '#e2a49c';
+        }
+      };
+
+      m.querySelector('[data-cancel]').onclick = closeModal;
+      m.querySelector('[data-save]').onclick = ()=>{
+        const vals = getVals();
+        if(!vals.owner || !vals.repo || !vals.token){
+          statusEl.textContent = '⚠ Completá todos los campos';
+          statusEl.style.color = '#e2a49c';
+          return;
+        }
+        githubConfig = vals;
+        saveGithubConfig();
+        closeModal();
+        toast('GitHub configurado ✓');
+        renderUserBar();
+      };
+    });
 }
 
-/* ---------- Inicialización principal ---------- */
+/* ============================================================
+   ARRANQUE
+============================================================ */
 function init(){
-  // Cargar cache local primero (rápido)
   try{
     const raw = localStorage.getItem(LS_KEY);
     if(raw) DB = JSON.parse(raw);
@@ -7753,11 +8053,21 @@ function init(){
   render();
   setSaveState(P ? 'Guardado ✓' : '');
 
-  // Activar Firebase (login + sync)
-  setupAuthObserver();
+  // Firebase: observar sesión
+  if(fbAuth){
+    fbAuth.onAuthStateChanged(async (user) => {
+      currentUser = user || null;
+      renderUserBar();
+      if(user){
+        await loadFromCloud();
+        setSaveState('☁ Conectado');
+      } else {
+        setSaveState(P ? 'Guardado ✓' : '');
+      }
+    });
+  }
   renderUserBar();
 
-  // Cerrar sidebar al cambiar de tamaño a escritorio
   window.addEventListener('resize', ()=>{
     if(window.innerWidth > 820) closeSidebarMobile();
   });
