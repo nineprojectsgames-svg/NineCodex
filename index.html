@@ -1019,24 +1019,30 @@ try{
 let currentUser = null;
 
 /* ============================================================
-   0.1 GITHUB STORAGE — configuración para imágenes
+   0.1 IMGBB — configuración para subir imágenes
 ============================================================ */
-const GITHUB_CONFIG_KEY = 'codex_github_config';
-let githubConfig = {
-  owner: '',
-  repo: '',
-  branch: 'main',
-  token: ''
-};
+const IMGBB_CONFIG_KEY = 'codex_imgbb_api_key';
+
+// ⚠️ IMPORTANTE: Poné tu API key de ImgBB acá abajo.
+// Si la dejás vacía, cada usuario tendrá que configurarla en su perfil.
+// Si la completás, TODOS los usuarios de tu Codex la usarán automáticamente.
+const IMGBB_DEFAULT_API_KEY = '183d04b675f6e3b401821a5e6d9398c4';
+
+let imgbbApiKey = IMGBB_DEFAULT_API_KEY || '';
+
+// Cargar key guardada (por si algún usuario la configuró manualmente)
 try{
-  const saved = localStorage.getItem(GITHUB_CONFIG_KEY);
-  if(saved) githubConfig = { ...githubConfig, ...JSON.parse(saved) };
+  const saved = localStorage.getItem(IMGBB_CONFIG_KEY);
+  if(saved && !imgbbApiKey) imgbbApiKey = saved;
 }catch(e){}
-function saveGithubConfig(){
-  try{ localStorage.setItem(GITHUB_CONFIG_KEY, JSON.stringify(githubConfig)); }catch(e){}
+
+function saveImgbbKey(key){
+  imgbbApiKey = key;
+  try{ localStorage.setItem(IMGBB_CONFIG_KEY, key); }catch(e){}
 }
-function githubReady(){
-  return !!(githubConfig.owner && githubConfig.repo && githubConfig.token);
+
+function imgbbReady(){
+  return !!(imgbbApiKey && imgbbApiKey.length > 10);
 }
 
 /* ============================================================
@@ -1058,7 +1064,6 @@ function reassignIds(o){
 function dupeItem(item){ const c = deepClone(item); reassignIds(c); return c; }
 function stripHtml(h){ return String(h||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim(); }
 function parseNumber(v){ const n = parseFloat(String(v||'').replace(',','.')); return isFinite(n)?n:null; }
-const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
 
 function countWords(html){
   const t = stripHtml(html||'');
@@ -1067,7 +1072,7 @@ function countWords(html){
 }
 function countChars(html){ return stripHtml(html||'').length; }
 
-function compressImage(file, maxDim=1600, quality=0.85){
+function compressImage(file, maxDim=800, quality=0.50){
   return new Promise((resolve, reject)=>{
     if(!file) return reject(new Error('No hay archivo'));
     if(!/^image\//.test(file.type)) return reject(new Error('No es imagen'));
@@ -1172,6 +1177,7 @@ let worldSel = null;
 let clipboard = null;
 let saveTimer = null;
 let savedRange = null;
+let cloudSyncing = false;
 
 const ui = {
   chapters:   { q:'', sort:'custom', sel:[] },
@@ -1199,6 +1205,7 @@ const ui = {
 };
 
 function setSaveState(txt){ const e=$('#saveState'); if(e) e.textContent = txt; }
+
 
 function saveDB(){
   if(P) P.updatedAt = Date.now();
@@ -7012,8 +7019,12 @@ function renderSidebar(){
     });
     sb.appendChild(grp);
   });
-  const wc = projectWordCount();
-  sb.appendChild(make(`<div class="nav-stats" title="Palabras totales del proyecto">📝 <b>${wc.toLocaleString('es')}</b> palabra${wc===1?'':'s'}</div>`));
+const wc = projectWordCount();
+const sizeKB = P ? Math.round(JSON.stringify(P).length / 1024) : 0;
+const sizeColor = sizeKB > 800 ? 'var(--red)' : (sizeKB > 500 ? 'var(--gold)' : 'var(--green)');
+const sizeWarning = sizeKB > 800 ? ' ⚠' : '';
+sb.appendChild(make(`<div class="nav-stats" title="Palabras totales del proyecto">📝 <b>${wc.toLocaleString('es')}</b> palabra${wc===1?'':'s'}</div>`));
+sb.appendChild(make(`<div class="nav-stats" title="Peso del proyecto (límite ~900 KB)">💾 <b style="color:${sizeColor}">${sizeKB} KB</b>${sizeWarning}</div>`));
 }
 
 const VIEWS = {
@@ -7508,49 +7519,36 @@ $('#fileImport').onchange = e=>{
 };
 
 /* ============================================================
-   11. ARRANQUE
-============================================================ */
-function init(){
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(raw) DB = JSON.parse(raw);
-  }catch(e){ console.warn('DB corrupta'); }
-  if(!DB || !Array.isArray(DB.projects)) DB = { projects: [], currentId: null };
-  P = DB.projects.find(p=>p.id === DB.currentId) || null;
-  if(!P && DB.projects.length){ P = DB.projects[0]; DB.currentId = P.id; }
-  if(!P) view = 'library';
-  DB.projects.forEach(p => migrateProject(p));
-  applyTheme();
-
-  try{ document.execCommand('defaultParagraphSeparator', false, 'p'); }catch(e){}
-  render();
-  setSaveState(P ? 'Guardado ✓' : '');
-  if(DB.projects.length) saveDB();
-
-  // Cerrar sidebar al cambiar de tamaño a escritorio
-  window.addEventListener('resize', ()=>{
-    if(window.innerWidth > 820) closeSidebarMobile();
-  });
-}
-
-/* ============================================================
    SINCRONIZACIÓN CON FIREBASE
 ============================================================ */
-let cloudSyncing = false;
+
 
 async function syncToCloud(){
   if(!currentUser || !fbDb || cloudSyncing) return;
   cloudSyncing = true;
   setSaveState('☁ Subiendo…');
   try{
-    const ref = fbDb.collection('users').doc(currentUser.uid);
-    await ref.set({
+    // Calcular tamaño total antes de subir
+    const payload = {
       email: currentUser.email,
       projects: DB.projects,
       currentId: DB.currentId,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-    setSaveState('☁ Guardado ✓');
+    };
+    const sizeKB = Math.round(JSON.stringify(payload).length / 1024);
+
+    // Firestore tiene un límite de 1 MB (1024 KB) por documento
+    // Margen de seguridad: 900 KB
+    if(sizeKB > 900){
+      setSaveState('⚠ Proyecto grande');
+      toast('⚠ El proyecto pesa ' + sizeKB + ' KB (límite ~1000 KB). Comprimí imágenes o eliminá algunas.');
+      cloudSyncing = false;
+      return;
+    }
+
+    const ref = fbDb.collection('users').doc(currentUser.uid);
+    await ref.set(payload, { merge: true });
+    setSaveState('☁ Guardado ✓ (' + sizeKB + ' KB)');
   }catch(e){
     console.warn('Error subiendo a Firebase:', e);
     setSaveState('⚠ Sin conexión');
@@ -7598,7 +7596,7 @@ async function loadFromCloud(){
 }
 
 /* ============================================================
-   GITHUB STORAGE — imágenes
+   IMGBB — imágenes
 ============================================================ */
 
 /* Comprime un archivo de imagen a JPEG */
@@ -7652,71 +7650,84 @@ function blobToBase64(blob){
   });
 }
 
-async function uploadToGithub(blob, folder, ext){
-  folder = folder || 'images';
-  ext = ext || 'jpg';
-  if(!githubReady()) throw new Error('GitHub no está configurado');
-  const filename = Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
-  const path = (folder + '/' + filename).replace(/\/+/g, '/');
-  const apiUrl = 'https://api.github.com/repos/' + githubConfig.owner + '/' + githubConfig.repo + '/contents/' + path;
-  const base64 = await blobToBase64(blob);
-  const body = {
-    message: 'Subir imagen ' + filename,
-    content: base64,
-    branch: githubConfig.branch || 'main'
-  };
-  const res = await fetch(apiUrl, {
-    method: 'PUT',
-    headers: {
-      'Authorization': 'token ' + githubConfig.token,
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
+/* ============================================================
+   IMGBB — subir imágenes
+============================================================ */
+
+/* Sube un Blob a ImgBB y devuelve la URL */
+async function uploadToImgbb(blob){
+  if(!imgbbReady()) throw new Error('ImgBB no está configurado');
+
+  // Convertir a base64
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
   });
+
+  // ImgBB acepta POST con form-data
+  const formData = new FormData();
+  formData.append('key', imgbbApiKey);
+  formData.append('image', base64);
+  formData.append('expiration', '0'); // 0 = nunca expira
+
+  const res = await fetch('https://api.imgbb.com/1/upload', {
+    method: 'POST',
+    body: formData
+  });
+
   if(!res.ok){
     const errText = await res.text();
-    console.error('Error subiendo a GitHub:', res.status, errText);
-    if(res.status === 401) throw new Error('Token de GitHub inválido o expirado');
-    if(res.status === 404) throw new Error('Repo no encontrado. Revisá usuario y nombre');
-    if(res.status === 403) throw new Error('Sin permisos. Verificá que el token tenga scope "repo"');
-    if(res.status === 422) throw new Error('Archivo ya existe o nombre inválido');
-    throw new Error('Error ' + res.status + ' al subir a GitHub');
+    console.error('Error de ImgBB:', res.status, errText);
+    if(res.status === 400) throw new Error('API key inválida o imagen inválida');
+    if(res.status === 429) throw new Error('Demasiadas subidas. Esperá un rato');
+    throw new Error('Error ' + res.status + ' al subir a ImgBB');
   }
-  return 'https://raw.githubusercontent.com/' + githubConfig.owner + '/' + githubConfig.repo + '/' + (githubConfig.branch || 'main') + '/' + path;
+
+  const data = await res.json();
+  if(!data || !data.data || !data.data.url){
+    throw new Error('Respuesta inválida de ImgBB');
+  }
+
+  // Preferimos la URL directa (más rápida)
+  return data.data.display_url || data.data.url;
 }
 
-/* Sube una imagen de forma inteligente:
-   - Si GitHub está listo → GitHub
-   - Si no → base64 comprimido (funciona igual, pero pesa más) */
+/* Sube una imagen "inteligentemente":
+   - Si ImgBB está configurado → sube a ImgBB
+   - Si no → guarda como base64 comprimido (fallback) */
 async function uploadImageSmart(file, folder){
-  folder = folder || 'images';
-  if(githubReady()){
+  if(imgbbReady()){
     try{
-      const blob = await compressFileToBlob(file);
-      return await uploadToGithub(blob, folder, 'jpg');
+      const blob = await compressFileToBlob(file, 1200, 0.7);
+      return await uploadToImgbb(blob);
     }catch(e){
-      console.warn('Error subiendo a GitHub, cae a base64:', e);
-      toast('⚠ No se pudo subir a GitHub, se guarda local');
+      console.warn('Error subiendo a ImgBB, cae a base64:', e);
+      toast('⚠ No se pudo subir a ImgBB, se guarda local');
     }
   }
-  return await compressImage(file);
+  return await compressImage(file, 800, 0.65);
 }
 
-/* Migrar imágenes base64 a GitHub */
-async function migrateProjectImagesToGithub(){
-  if(!githubReady()){ toast('Configurá GitHub primero'); return; }
+/* Migrar imágenes base64 existentes a ImgBB */
+async function migrateProjectImagesToImgbb(){
+  if(!imgbbReady()){ toast('Configurá ImgBB primero'); return; }
   if(!P){ toast('No hay proyecto abierto'); return; }
-  const ok = await confirmar('Se van a subir TODAS las imágenes base64 de este proyecto a GitHub. Puede tardar. ¿Continuar?');
+
+  const ok = await confirmar('Se van a subir TODAS las imágenes base64 de este proyecto a ImgBB. Puede tardar. ¿Continuar?');
   if(!ok) return;
+
   toast('Migrando imágenes… no cierres la pestaña');
   let count = 0;
+
   async function uploadBase64(dataUrl, folder){
     const blob = await dataUrlToBlob(dataUrl);
-    const url = await uploadToGithub(blob, folder, 'jpg');
+    const url = await uploadToImgbb(blob);
     count++;
     return url;
   }
+
   try{
     if(P.image && P.image.startsWith('data:image/')){
       P.image = await uploadBase64(P.image, 'covers');
@@ -7727,19 +7738,19 @@ async function migrateProjectImagesToGithub(){
         if(item.image && item.image.startsWith('data:image/')){
           item.image = await uploadBase64(item.image, 'profiles');
         }
-        await migrateHtmlImagesToGithub(item, uploadBase64);
+        await migrateHtmlImagesToImgbb(item, uploadBase64);
       }
     }
     for(const e of (P.story.events || [])){
       if(e.image && e.image.startsWith('data:image/')){
         e.image = await uploadBase64(e.image, 'events');
       }
-      await migrateHtmlImagesToGithub(e, uploadBase64);
+      await migrateHtmlImagesToImgbb(e, uploadBase64);
     }
-    for(const c of (P.story.chapters || [])) await migrateHtmlImagesToGithub(c, uploadBase64);
-    for(const a of (P.story.acts || [])) await migrateHtmlImagesToGithub(a, uploadBase64);
-    for(const i of (P.story.ideas || [])) await migrateHtmlImagesToGithub(i, uploadBase64);
-    for(const n of (P.notes || [])) await migrateHtmlImagesToGithub(n, uploadBase64);
+    for(const c of (P.story.chapters || [])) await migrateHtmlImagesToImgbb(c, uploadBase64);
+    for(const a of (P.story.acts || [])) await migrateHtmlImagesToImgbb(a, uploadBase64);
+    for(const i of (P.story.ideas || [])) await migrateHtmlImagesToImgbb(i, uploadBase64);
+    for(const n of (P.notes || [])) await migrateHtmlImagesToImgbb(n, uploadBase64);
     await (async function walkZones(arr){
       for(const z of (arr || [])){
         if(z.image && z.image.startsWith('data:image/')){
@@ -7748,11 +7759,11 @@ async function migrateProjectImagesToGithub(){
         if(z.map && z.map.image && z.map.image.startsWith('data:image/')){
           z.map.image = await uploadBase64(z.map.image, 'maps');
         }
-        await migrateHtmlImagesToGithub(z, uploadBase64);
+        await migrateHtmlImagesToImgbb(z, uploadBase64);
         await walkZones(z.children);
       }
     })(P.world);
-    for(const t of (P.story.timelines || [])) await migrateHtmlImagesToGithub(t, uploadBase64);
+    for(const t of (P.story.timelines || [])) await migrateHtmlImagesToImgbb(t, uploadBase64);
     await syncToCloud();
     toast('¡Migración completa! ' + count + ' imágenes subidas ✓');
     render();
@@ -7762,7 +7773,7 @@ async function migrateProjectImagesToGithub(){
   }
 }
 
-async function migrateHtmlImagesToGithub(item, uploader){
+async function migrateHtmlImagesToImgbb(item, uploader){
   if(!item) return;
   const fields = ['content', 'history', 'desc', 'description', 'short'];
   for(const field of fields){
@@ -7793,6 +7804,72 @@ async function migrateHtmlImagesToGithub(item, uploader){
       }
     }
   }
+}
+
+/* Modal de configuración de ImgBB (opcional si vos ya pusiste la key por defecto) */
+function openImgbbConfigModal(){
+  openModal(`<h3>⚙ Configurar ImgBB</h3>
+    <p class="hint">ImgBB es un servicio gratuito de imágenes. Subís tu API key una vez y listo.</p>
+    <label class="field"><span>API key de ImgBB</span>
+      <input data-key placeholder="Pegá tu API key" value="${esc(imgbbApiKey||'')}"></label>
+    <div data-status style="font-size:12px;color:var(--muted);margin-top:6px;min-height:16px"></div>
+    <div class="modal-actions">
+      <button class="btn" data-test>🧪 Probar</button>
+      <button class="btn" data-cancel>Cancelar</button>
+      <button class="btn primary" data-save>Guardar</button>
+    </div>`,
+    m=>{
+      const statusEl = m.querySelector('[data-status]');
+      const keyInp = m.querySelector('[data-key]');
+
+      m.querySelector('[data-test]').onclick = async ()=>{
+        const key = keyInp.value.trim();
+        if(!key){ statusEl.textContent = '⚠ Escribí la API key'; statusEl.style.color = '#e2a49c'; return; }
+        statusEl.textContent = '⏳ Probando…';
+        statusEl.style.color = 'var(--gold)';
+        try{
+          // Probar subiendo una imagen chiquitita (1x1 pixel)
+const canvas = document.createElement('canvas');
+canvas.width = 400;
+canvas.height = 400;
+const ctx = canvas.getContext('2d');
+ctx.fillStyle = '#c9a227';
+ctx.fillRect(0, 0, 400, 400);
+ctx.fillStyle = '#0f0c09';
+ctx.font = 'bold 40px serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('Codex', 200, 200);
+const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.8));
+          const base64 = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1]); fr.readAsDataURL(blob); });
+          const formData = new FormData();
+          formData.append('key', key);
+          formData.append('image', base64);
+          const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+          if(!res.ok) throw new Error('Error ' + res.status);
+          const data = await res.json();
+          if(data && data.data && data.data.url){
+            statusEl.textContent = '✓ ¡API key funciona correctamente!';
+            statusEl.style.color = 'var(--green)';
+          } else {
+            throw new Error('Respuesta inválida');
+          }
+        }catch(e){
+          statusEl.textContent = '❌ Error: ' + e.message;
+          statusEl.style.color = '#e2a49c';
+        }
+      };
+
+      m.querySelector('[data-cancel]').onclick = closeModal;
+      m.querySelector('[data-save]').onclick = ()=>{
+        const key = keyInp.value.trim();
+        if(!key){ statusEl.textContent = '⚠ Escribí la API key'; statusEl.style.color = '#e2a49c'; return; }
+        saveImgbbKey(key);
+        closeModal();
+        toast('ImgBB configurado ✓');
+        renderUserBar();
+      };
+    });
 }
 
 /* ============================================================
@@ -7905,10 +7982,10 @@ function renderUserBar(){
         <span style="
           position:absolute;bottom:-2px;right:-2px;
           width:14px;height:14px;border-radius:50%;
-          background:${githubReady() ? 'var(--green)' : 'var(--red)'};
+          background:${imgbbReady() ? 'var(--green)' : 'var(--red)'};
           border:2px solid var(--bg);font-size:9px;color:#fff;
           display:flex;align-items:center;justify-content:center;
-        ">${githubReady() ? '✓' : '!'}</span>
+        ">${imgbbReady() ? '✓' : '!'}</span>
       </span>
     `;
     bar.querySelector('[data-menu]').onclick = openUserMenu;
@@ -7928,18 +8005,15 @@ function openUserMenu(){
     border:'1px solid var(--gold-soft)', borderRadius:'8px',
     padding:'6px', minWidth:'240px', boxShadow:'0 14px 40px #000c'
   });
-  pop.innerHTML = `
-    <div style="padding:8px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);margin-bottom:4px">
-      ${esc(currentUser.email||'')}
-    </div>
-    <div class="pickitem" data-sync>☁ Sincronizar ahora</div>
-    <div class="pickitem" data-github>
-      ${githubReady() ? '✓ GitHub Storage configurado' : '⚙ Configurar GitHub Storage (imágenes)'}
-    </div>
-    ${githubReady() ? '<div class="pickitem" data-migrate>🖼 Migrar imágenes a GitHub</div>' : ''}
-    <div class="pickitem" data-export>📤 Exportar mis proyectos</div>
+pop.innerHTML = `
+  <div style="padding:8px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);margin-bottom:4px">
+    ${esc(currentUser.email||'')}
+  </div>
+  <div class="pickitem" data-imgbb>⚙ ${imgbbReady() ? 'Cambiar API key de ImgBB' : 'Configurar ImgBB (imágenes)'}</div>
+  ${imgbbReady() ? '<div class="pickitem" data-migrate>🖼 Migrar imágenes a ImgBB</div>' : ''}
+  <div class="pickitem" data-export>📤 Exportar mis proyectos</div>
     <div class="pickitem" data-logout style="color:#e2a49c">🚪 Cerrar sesión</div>
-  `;
+`;
   document.body.appendChild(pop);
 
   const menuBtn = document.querySelector('#userBar [data-menu]');
@@ -7947,91 +8021,15 @@ function openUserMenu(){
   pop.style.top = (r.bottom + 6) + 'px';
   pop.style.right = (window.innerWidth - r.right) + 'px';
 
-  pop.querySelector('[data-sync]').onclick = async ()=>{ pop.remove(); await loadFromCloud(); toast('Sincronizado ✓'); };
-  pop.querySelector('[data-github]').onclick = ()=>{ pop.remove(); openGithubConfigModal(); };
-  const migBtn = pop.querySelector('[data-migrate]');
-  if(migBtn) migBtn.onclick = ()=>{ pop.remove(); migrateProjectImagesToGithub(); };
-  pop.querySelector('[data-export]').onclick = ()=>{ pop.remove(); openExportModal(); };
-  pop.querySelector('[data-logout]').onclick = async ()=>{ pop.remove(); try{ await fbAuth.signOut(); }catch(e){} };
+const imgbbBtn = pop.querySelector('[data-imgbb]');
+if(imgbbBtn) imgbbBtn.onclick = ()=>{ pop.remove(); openImgbbConfigModal(); };
+const migBtn = pop.querySelector('[data-migrate]');
+if(migBtn) migBtn.onclick = ()=>{ pop.remove(); migrateProjectImagesToImgbb(); };
+pop.querySelector('[data-export]').onclick = ()=>{ pop.remove(); openExportModal(); };
+pop.querySelector('[data-logout]').onclick = async ()=>{ pop.remove(); try{ await fbAuth.signOut(); }catch(e){} };
 
   const close = (e)=>{ if(!pop.contains(e.target) && !e.target.closest('#userBar')){ pop.remove(); document.removeEventListener('mousedown', close); } };
   setTimeout(()=> document.addEventListener('mousedown', close), 0);
-}
-
-function openGithubConfigModal(){
-  openModal(`<h3>⚙ Configurar GitHub Storage</h3>
-    <p class="hint">Las imágenes se subirán a tu repositorio de GitHub. Necesitás un repo público y un token personal.</p>
-    <label class="field"><span>Tu usuario de GitHub</span>
-      <input data-owner placeholder="ej: juanperez" value="${esc(githubConfig.owner||'')}" autofocus></label>
-    <label class="field"><span>Nombre del repositorio</span>
-      <input data-repo placeholder="ej: codex-imagenes" value="${esc(githubConfig.repo||'')}"></label>
-    <label class="field"><span>Rama</span>
-      <input data-branch placeholder="main" value="${esc(githubConfig.branch||'main')}"></label>
-    <label class="field"><span>Token personal (empieza con ghp_)</span>
-      <input data-token type="password" placeholder="ghp_..." value="${esc(githubConfig.token||'')}"></label>
-    <div data-status style="font-size:12px;color:var(--muted);margin-top:6px;min-height:16px"></div>
-    <div class="modal-actions">
-      <button class="btn" data-test>🧪 Probar conexión</button>
-      <button class="btn" data-cancel>Cancelar</button>
-      <button class="btn primary" data-save>Guardar</button>
-    </div>`,
-    m=>{
-      const statusEl = m.querySelector('[data-status]');
-      const getVals = () => ({
-        owner: m.querySelector('[data-owner]').value.trim(),
-        repo: m.querySelector('[data-repo]').value.trim(),
-        branch: m.querySelector('[data-branch]').value.trim() || 'main',
-        token: m.querySelector('[data-token]').value.trim()
-      });
-
-      m.querySelector('[data-test]').onclick = async ()=>{
-        const vals = getVals();
-        if(!vals.owner || !vals.repo || !vals.token){
-          statusEl.textContent = '⚠ Completá todos los campos';
-          statusEl.style.color = '#e2a49c';
-          return;
-        }
-        statusEl.textContent = '⏳ Probando…';
-        statusEl.style.color = 'var(--gold)';
-        try{
-          const apiUrl = 'https://api.github.com/repos/' + vals.owner + '/' + vals.repo;
-          const res = await fetch(apiUrl, { headers: { 'Authorization': 'token ' + vals.token } });
-          if(!res.ok){
-            if(res.status === 404) statusEl.textContent = '❌ Repo no encontrado o token sin permisos';
-            else if(res.status === 401) statusEl.textContent = '❌ Token inválido';
-            else statusEl.textContent = '❌ Error ' + res.status;
-            statusEl.style.color = '#e2a49c';
-            return;
-          }
-          const contentRes = await fetch(apiUrl + '/contents/', { headers: { 'Authorization': 'token ' + vals.token } });
-          if(!contentRes.ok){
-            statusEl.textContent = '⚠ El repo funciona pero el token no puede escribir';
-            statusEl.style.color = '#e2a49c';
-            return;
-          }
-          statusEl.textContent = '✓ ¡Todo funciona correctamente!';
-          statusEl.style.color = 'var(--green)';
-        }catch(e){
-          statusEl.textContent = '❌ Error de red: ' + e.message;
-          statusEl.style.color = '#e2a49c';
-        }
-      };
-
-      m.querySelector('[data-cancel]').onclick = closeModal;
-      m.querySelector('[data-save]').onclick = ()=>{
-        const vals = getVals();
-        if(!vals.owner || !vals.repo || !vals.token){
-          statusEl.textContent = '⚠ Completá todos los campos';
-          statusEl.style.color = '#e2a49c';
-          return;
-        }
-        githubConfig = vals;
-        saveGithubConfig();
-        closeModal();
-        toast('GitHub configurado ✓');
-        renderUserBar();
-      };
-    });
 }
 
 /* ============================================================
