@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f0c09">
 <title>Codex — Creador de Historias</title>
+<!-- ================= FIREBASE ================= -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <style>
 :root{
   --bg:#0f0c09; --bg2:#171310; --paper:#1d1813; --paper2:#241d16;
@@ -987,6 +992,35 @@ select{cursor:pointer}
 <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
 
 <script>
+
+/* ============================================================
+   0. FIREBASE — configuración y estado
+============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDw4kHO7aTDx_5PZpyNuDIVv4bd5852tq8",
+  authDomain: "codex-app-69ad6.firebaseapp.com",
+  projectId: "codex-app-69ad6",
+  storageBucket: "codex-app-69ad6.firebasestorage.app",
+  messagingSenderId: "583559903976",
+  appId: "1:583559903976:web:1a5b44e4da9f510078a75d"
+};
+
+// Inicializar Firebase (solo si no está ya inicializado)
+let fbApp, fbAuth, fbDb;
+try{
+  fbApp = firebase.apps && firebase.apps.length
+    ? firebase.app()
+    : firebase.initializeApp(firebaseConfig);
+  fbAuth = firebase.auth();
+  fbDb   = firebase.firestore();
+}catch(err){
+  console.warn('Firebase no pudo inicializarse:', err);
+}
+
+let currentUser = null;       // usuario logueado
+let cloudEnabled = true;      // si hay conexión a Firebase
+let cloudSyncing = false;     // evitar loops de guardado
+
 /* ============================================================
    1. UTILIDADES
 ============================================================ */
@@ -1157,7 +1191,74 @@ function saveDB(){
     setSaveState('⚠ Sin espacio');
     toast('No se pudo guardar: almacenamiento lleno. Exporta tu proyecto.');
   }
+  // Subir a Firebase en segundo plano
+  syncToCloud();
 }
+
+/* ---------- Sincronización con Firebase ---------- */
+async function syncToCloud(){
+  if(!currentUser || !cloudEnabled || cloudSyncing) return;
+  cloudSyncing = true;
+  setSaveState('☁ Subiendo…');
+  try{
+    const ref = fbDb.collection('users').doc(currentUser.uid);
+    await ref.set({
+      email: currentUser.email,
+      projects: DB.projects,
+      currentId: DB.currentId,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    setSaveState('☁ Guardado ✓');
+  }catch(e){
+    console.warn('Error subiendo a Firebase:', e);
+    setSaveState('⚠ Sin conexión');
+  }finally{
+    cloudSyncing = false;
+  }
+}
+
+async function loadFromCloud(){
+  if(!currentUser || !cloudEnabled) return;
+  setSaveState('☁ Descargando…');
+  try{
+    const ref = fbDb.collection('users').doc(currentUser.uid);
+    const snap = await ref.get();
+    if(snap.exists){
+      const data = snap.data();
+      if(Array.isArray(data.projects)){
+        // Combinar: proyectos locales + proyectos en la nube (por updatedAt más reciente)
+        const cloudProjects = data.projects;
+        const localProjects = DB.projects || [];
+        const merged = new Map();
+        // Primero los locales
+        localProjects.forEach(p => merged.set(p.id, p));
+        // Luego los de la nube (sobrescriben si son más nuevos)
+        cloudProjects.forEach(p => {
+          const local = merged.get(p.id);
+          if(!local || (p.updatedAt||0) > (local.updatedAt||0)){
+            merged.set(p.id, p);
+          }
+        });
+        DB.projects = [...merged.values()];
+        DB.currentId = data.currentId || DB.currentId;
+        DB.projects.forEach(p => migrateProject(p));
+        P = DB.projects.find(p => p.id === DB.currentId) || DB.projects[0] || null;
+        if(P) DB.currentId = P.id;
+        applyTheme();
+        try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){}
+        render();
+        setSaveState('☁ Sincronizado ✓');
+      }
+    } else {
+      // Usuario nuevo en la nube — subir lo que tenga local
+      await syncToCloud();
+    }
+  }catch(e){
+    console.warn('Error bajando de Firebase:', e);
+    setSaveState('⚠ Sin conexión');
+  }
+}
+
 function touch(){
   setSaveState('Guardando…');
   clearTimeout(saveTimer);
@@ -7454,9 +7555,189 @@ $('#fileImport').onchange = e=>{
 };
 
 /* ============================================================
-   11. ARRANQUE
+   11. AUTENTICACIÓN Y ARRANQUE
 ============================================================ */
+
+/* ---------- UI: modal de login/registro ---------- */
+function openAuthModal(tab = 'login'){
+  openModal(`
+    <h3 id="authTitle">${tab === 'login' ? '🔐 Iniciar sesión' : '✨ Crear cuenta'}</h3>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="btn small" data-tab="login"   style="${tab==='login'?'background:var(--gold);color:#1a130a;border-color:var(--gold)':''}">Iniciar sesión</button>
+      <button class="btn small" data-tab="register" style="${tab==='register'?'background:var(--gold);color:#1a130a;border-color:var(--gold)':''}">Crear cuenta</button>
+    </div>
+    <label class="field"><span>Correo electrónico</span>
+      <input type="email" data-email placeholder="tu@correo.com" autocomplete="email"></label>
+    <label class="field"><span>Contraseña ${tab==='register'?'(mínimo 6 caracteres)':''}</span>
+      <input type="password" data-pass placeholder="••••••" autocomplete="${tab==='register'?'new-password':'current-password'}"></label>
+    <div data-err style="color:#e2a49c;font-size:13px;min-height:18px;margin-bottom:6px"></div>
+    <div class="modal-actions" style="flex-direction:column;gap:8px">
+      <button class="btn primary" data-submit style="width:100%">
+        ${tab === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
+      </button>
+      <button class="btn ghost" data-cancel style="width:100%">Cancelar</button>
+      <button class="btn ghost" data-forgot style="width:100%;font-size:12px">¿Olvidaste tu contraseña?</button>
+    </div>
+  `, m => {
+    const emailInp = m.querySelector('[data-email]');
+    const passInp  = m.querySelector('[data-pass]');
+    const errEl    = m.querySelector('[data-err]');
+    const submit   = m.querySelector('[data-submit]');
+    let currentTab = tab;
+
+    const setTab = (t) => {
+      closeModal();
+      openAuthModal(t);
+    };
+    m.querySelectorAll('[data-tab]').forEach(b => {
+      b.onclick = () => setTab(b.dataset.tab);
+    });
+
+    const showErr = (msg) => { errEl.textContent = msg; };
+
+    const doAuth = async () => {
+      const email = emailInp.value.trim();
+      const pass  = passInp.value;
+      if(!email || !pass){ showErr('Completá correo y contraseña'); return; }
+      if(currentTab === 'register' && pass.length < 6){ showErr('La contraseña debe tener al menos 6 caracteres'); return; }
+
+      submit.disabled = true;
+      submit.textContent = 'Procesando…';
+      try{
+        if(currentTab === 'login'){
+          await fbAuth.signInWithEmailAndPassword(email, pass);
+        } else {
+          await fbAuth.createUserWithEmailAndPassword(email, pass);
+        }
+        closeModal();
+      }catch(err){
+        const msg = traducirErrorAuth(err.code || err.message);
+        showErr(msg);
+        submit.disabled = false;
+        submit.textContent = currentTab === 'login' ? 'Iniciar sesión' : 'Crear cuenta';
+      }
+    };
+
+    submit.onclick = doAuth;
+    m.addEventListener('keydown', e => {
+      if(e.key === 'Enter') doAuth();
+    });
+    m.querySelector('[data-cancel]').onclick = closeModal;
+    m.querySelector('[data-forgot]').onclick = async () => {
+      const email = emailInp.value.trim();
+      if(!email){ showErr('Escribí tu correo primero'); return; }
+      try{
+        await fbAuth.sendPasswordResetEmail(email);
+        toast('Te enviamos un correo para restablecer tu contraseña ✓');
+        closeModal();
+      }catch(err){
+        showErr(traducirErrorAuth(err.code || err.message));
+      }
+    };
+
+    setTimeout(() => emailInp.focus(), 80);
+  });
+}
+
+function traducirErrorAuth(code){
+  const map = {
+    'auth/invalid-email': 'El correo no es válido.',
+    'auth/user-disabled': 'Esta cuenta está deshabilitada.',
+    'auth/user-not-found': 'No existe una cuenta con ese correo.',
+    'auth/wrong-password': 'Contraseña incorrecta.',
+    'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+    'auth/email-already-in-use': 'Ya existe una cuenta con ese correo.',
+    'auth/weak-password': 'La contraseña es muy débil (mínimo 6 caracteres).',
+    'auth/network-request-failed': 'Sin conexión. Revisá tu internet.',
+    'auth/too-many-requests': 'Demasiados intentos. Esperá unos minutos.'
+  };
+  return map[code] || 'Error: ' + code;
+}
+
+/* ---------- Barra de usuario en el topbar ---------- */
+function renderUserBar(){
+  const existing = document.getElementById('userBar');
+  if(existing) existing.remove();
+
+  const bar = document.createElement('div');
+  bar.id = 'userBar';
+  bar.style.cssText = 'display:flex;gap:6px;align-items:center;flex:0 0 auto';
+
+  if(currentUser){
+    const email = currentUser.email || '';
+    const initials = email.slice(0, 2).toUpperCase();
+    bar.innerHTML = `
+      <span title="${esc(email)}" style="
+        display:inline-flex;align-items:center;justify-content:center;
+        width:30px;height:30px;border-radius:50%;
+        background:linear-gradient(var(--gold),var(--gold-soft));
+        color:#1a130a;font-weight:600;font-size:12px;
+        border:1px solid var(--gold-soft);cursor:pointer;
+      " data-menu>${esc(initials)}</span>
+    `;
+    bar.querySelector('[data-menu]').onclick = openUserMenu;
+  } else {
+    bar.innerHTML = `<button class="btn small primary" data-login>Entrar</button>`;
+    bar.querySelector('[data-login]').onclick = () => openAuthModal('login');
+  }
+  document.querySelector('.topbar').appendChild(bar);
+}
+
+function openUserMenu(){
+  $$('.user-menu-pop').forEach(x => x.remove());
+  const pop = make(`<div class="user-menu-pop"></div>`);
+  Object.assign(pop.style, {
+    position:'fixed', zIndex:'300',
+    background:'linear-gradient(180deg,var(--paper2),var(--bg2))',
+    border:'1px solid var(--gold-soft)', borderRadius:'8px',
+    padding:'6px', minWidth:'220px', boxShadow:'0 14px 40px #000c'
+  });
+  pop.innerHTML = `
+    <div style="padding:8px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);margin-bottom:4px">
+      ${esc(currentUser.email||'')}
+    </div>
+    <div class="pickitem" data-sync>☁ Sincronizar ahora</div>
+    <div class="pickitem" data-export>📤 Exportar mis proyectos</div>
+    <div class="pickitem" data-logout style="color:#e2a49c">🚪 Cerrar sesión</div>
+  `;
+  document.body.appendChild(pop);
+
+  const r = document.querySelector('#userBar [data-menu]').getBoundingClientRect();
+  pop.style.top = (r.bottom + 6) + 'px';
+  pop.style.right = (window.innerWidth - r.right) + 'px';
+
+  pop.querySelector('[data-sync]').onclick = async ()=>{ pop.remove(); await loadFromCloud(); toast('Sincronizado ✓'); };
+  pop.querySelector('[data-export]').onclick = ()=>{ pop.remove(); openExportModal(); };
+  pop.querySelector('[data-logout]').onclick = async ()=>{
+    pop.remove();
+    try{ await fbAuth.signOut(); }catch(e){}
+  };
+
+  const close = (e)=>{ if(!pop.contains(e.target) && !e.target.closest('#userBar')){ pop.remove(); document.removeEventListener('mousedown', close); } };
+  setTimeout(()=> document.addEventListener('mousedown', close), 0);
+}
+
+/* ---------- Observador de sesión ---------- */
+function setupAuthObserver(){
+  if(!fbAuth) return;
+  fbAuth.onAuthStateChanged(async (user) => {
+    currentUser = user || null;
+    renderUserBar();
+
+    if(user){
+      // Usuario logueado: bajar sus proyectos
+      await loadFromCloud();
+      setSaveState('☁ Conectado');
+    } else {
+      // Sin sesión: trabajar solo con localStorage
+      setSaveState(P ? 'Guardado ✓' : '');
+    }
+  });
+}
+
+/* ---------- Inicialización principal ---------- */
 function init(){
+  // Cargar cache local primero (rápido)
   try{
     const raw = localStorage.getItem(LS_KEY);
     if(raw) DB = JSON.parse(raw);
@@ -7471,7 +7752,10 @@ function init(){
   try{ document.execCommand('defaultParagraphSeparator', false, 'p'); }catch(e){}
   render();
   setSaveState(P ? 'Guardado ✓' : '');
-  if(DB.projects.length) saveDB();
+
+  // Activar Firebase (login + sync)
+  setupAuthObserver();
+  renderUserBar();
 
   // Cerrar sidebar al cambiar de tamaño a escritorio
   window.addEventListener('resize', ()=>{
@@ -7481,6 +7765,7 @@ function init(){
 
 window.addEventListener('beforeunload', ()=>{ if(P) saveDB(); });
 init();
+
 </script>
 </body>
 </html>
