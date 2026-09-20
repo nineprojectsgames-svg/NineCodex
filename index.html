@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0c09">
 <title>Codex — Creador de Historias</title>
 <style>
 :root{
@@ -13,6 +14,7 @@
   --red:#a8443a; --green:#5c8a4a; --blue:#4a6f8a;
   --body-font:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif;
   --radius:5px;
+  --topbar-h:54px;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -20,6 +22,7 @@ body{
   background:radial-gradient(1200px 600px at 50% -10%, var(--paper2) 0%, var(--bg) 60%) fixed, var(--bg);
   color:var(--ink); font-family:var(--body-font); font-size:15px; overflow:hidden;
   transition:background .3s ease, color .3s ease;
+  -webkit-text-size-adjust:100%;
 }
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:var(--bg)}
@@ -27,7 +30,7 @@ body{
 ::-webkit-scrollbar-thumb:hover{background:var(--line2)}
 
 .topbar{
-  height:54px;display:flex;align-items:center;gap:14px;padding:0 16px;
+  height:var(--topbar-h);display:flex;align-items:center;gap:12px;padding:0 14px;
   border-bottom:1px solid var(--line);
   background:linear-gradient(var(--paper2),var(--bg2));
   box-shadow:0 2px 10px #0008; position:relative; z-index:50;
@@ -36,14 +39,16 @@ body{
 .brand b{color:var(--ink);font-weight:600}
 #topProjName{flex:1;text-align:center;color:var(--ink-dim);font-style:italic;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px}
-.top-actions{display:flex;gap:8px;align-items:center}
+.top-actions{display:flex;gap:6px;align-items:center}
 .savestate{font-size:12px;color:var(--muted);min-width:78px;text-align:right;font-style:italic}
 
 .btn{
   background:linear-gradient(var(--paper2),var(--bg2));
   border:1px solid var(--line2); color:var(--ink);
-  padding:6px 11px;border-radius:4px;cursor:pointer;font-size:13px;
+  padding:7px 12px;border-radius:4px;cursor:pointer;font-size:13px;
   font-family:inherit; transition:.15s; white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
 .btn:hover{background:linear-gradient(var(--line),var(--paper2));border-color:var(--gold-soft);color:#fff}
 .btn:active{transform:translateY(1px)}
@@ -51,11 +56,11 @@ body{
 .btn.primary:hover{background:linear-gradient(#8a6f1c,#6b5715)}
 .btn.danger{color:#e2a49c;border-color:#5a2f2a}
 .btn.danger:hover{background:#3a1d19;border-color:var(--red);color:#ffd9d4}
-.btn.small{padding:4px 8px;font-size:12px}
+.btn.small{padding:5px 9px;font-size:12px}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--ink-dim)}
 .btn.ghost:hover{background:var(--paper2);color:var(--ink)}
 
-.layout{display:flex;height:calc(100vh - 54px)}
+.layout{display:flex;height:calc(100vh - var(--topbar-h));height:calc(100dvh - var(--topbar-h))}
 .sidebar{
   width:258px;flex:0 0 258px;border-right:1px solid var(--line);
   overflow-y:auto;padding:14px 10px;background:linear-gradient(180deg,var(--bg2),var(--bg));
@@ -72,13 +77,14 @@ body.sidebar-hidden #btnCollapseSidebar{ color:var(--gold); }
   color:var(--gold-soft);font-weight:600;
 }
 .navitem{
-  display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:4px;
+  display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:4px;
   cursor:pointer;color:var(--ink-dim);font-size:14px;transition:.12s;border-left:2px solid transparent;
+  -webkit-tap-highlight-color:transparent;
 }
 .navitem:hover{background:var(--paper2);color:var(--ink)}
 .navitem.active{background:linear-gradient(90deg,#33281a,var(--paper2));color:var(--gold);border-left-color:var(--gold)}
 .navitem .ic{width:18px;text-align:center;font-size:14px}
-.main{flex:1;overflow-y:auto;padding:26px 40px 80px}
+.main{flex:1;overflow-y:auto;padding:26px 40px 80px;min-width:0}
 .page{max-width:1400px;margin:0 auto}
 .page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap}
 h1,h2,h3,h4{margin:0;font-weight:600}
@@ -105,8 +111,9 @@ h1,h2,h3,h4{margin:0;font-weight:600}
 .pane-actions{display:flex;gap:5px;flex-wrap:wrap}
 .list{display:flex;flex-direction:column;gap:5px}
 .list-item{
-  display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-radius:4px;cursor:pointer;
+  display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:4px;cursor:pointer;
   border:1px solid transparent;background:var(--bg2);transition:.12s;position:relative;
+  -webkit-tap-highlight-color:transparent;
 }
 .list-item:hover{background:var(--paper2);border-color:var(--line)}
 .list-item.active{background:linear-gradient(90deg,#33281a,#211a13);border-color:var(--gold-soft)}
@@ -117,17 +124,18 @@ h1,h2,h3,h4{margin:0;font-weight:600}
 
 .li-move{position:absolute; right:6px; top:50%; transform:translateY(-50%); display:flex; gap:2px; opacity:0; transition:.15s;}
 .list-item:hover .li-move{ opacity:1; }
-.li-move button{background:var(--paper2); border:1px solid var(--line); color:var(--ink-dim); cursor:pointer; font-size:9px; padding:1px 4px; border-radius:2px; height:16px; line-height:1;}
+.li-move button{background:var(--paper2); border:1px solid var(--line); color:var(--ink-dim); cursor:pointer; font-size:9px; padding:1px 4px; border-radius:2px; height:20px; line-height:1;}
 .li-move button:hover{ background:var(--line); color:var(--gold); border-color:var(--gold-soft); }
 
 .pane-tools{ display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;}
-.pane-tools .pt-search{ flex:1; min-width:120px; padding:6px 9px!important; font-size:12.5px!important; }
-.pane-tools .pt-sort{ width:auto!important; padding:6px 6px!important; font-size:12px!important; }
+.pane-tools .pt-search{ flex:1; min-width:120px; padding:8px 10px!important; font-size:13px!important; }
+.pane-tools .pt-sort{ width:auto!important; padding:8px 6px!important; font-size:12.5px!important; }
 
 .folder-header{
-  display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:4px;
+  display:flex; align-items:center; gap:6px; padding:7px 10px; border-radius:4px;
   background:linear-gradient(90deg,var(--paper2),var(--bg2)); border:1px solid var(--line);
   font-size:13px; color:var(--gold); cursor:pointer; user-select:none; margin-top:6px;
+  -webkit-tap-highlight-color:transparent;
 }
 .folder-header:hover{ border-color:var(--gold-soft); }
 .folder-header .caret{ font-size:9px; width:12px; text-align:center; color:var(--gold-soft); }
@@ -162,7 +170,7 @@ h1,h2,h3,h4{margin:0;font-weight:600}
 .field > span{display:block;font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:4px}
 input[type=text],input[type=number],input:not([type]),textarea,select{
   width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);
-  padding:8px 10px;border-radius:4px;font-family:inherit;font-size:14px;outline:none;transition:.15s;
+  padding:9px 11px;border-radius:4px;font-family:inherit;font-size:14px;outline:none;transition:.15s;
 }
 input:focus,textarea:focus,select:focus{border-color:var(--gold-soft);background:var(--bg2)}
 textarea{resize:vertical;min-height:70px;line-height:1.5}
@@ -183,16 +191,18 @@ select{cursor:pointer}
 .ed-toolbar{
   display:flex;flex-wrap:wrap;gap:3px;padding:6px;border-bottom:1px solid var(--line);
   background:linear-gradient(var(--paper2),var(--bg2));position:sticky;top:0;z-index:5;
+  align-items:center;
 }
 .ed-toolbar button{
   background:var(--paper2);border:1px solid var(--line);color:var(--ink-dim);border-radius:3px;
-  min-width:28px;height:26px;padding:0 6px;cursor:pointer;font-size:12.5px;font-family:inherit;transition:.12s;
+  min-width:28px;height:28px;padding:0 6px;cursor:pointer;font-size:12.5px;font-family:inherit;transition:.12s;
+  -webkit-tap-highlight-color:transparent;
 }
 .ed-toolbar button:hover{background:var(--line);color:#fff;border-color:var(--gold-soft)}
-.ed-sel{width:auto!important;padding:3px 5px!important;font-size:12px!important;height:26px}
+.ed-sel{width:auto!important;padding:3px 5px!important;font-size:12px!important;height:28px}
 .ed-color{
   display:inline-flex;align-items:center;gap:2px;background:var(--paper2);border:1px solid var(--line);
-  border-radius:3px;height:26px;padding:0 5px;cursor:pointer;font-size:12px;color:var(--ink-dim);
+  border-radius:3px;height:28px;padding:0 5px;cursor:pointer;font-size:12px;color:var(--ink-dim);
 }
 .ed-color input{width:18px;height:18px;padding:0;border:none;background:none;cursor:pointer}
 .editor-area{
@@ -213,7 +223,13 @@ select{cursor:pointer}
 .editor-area td,.editor-area th{border:1px solid var(--line2);padding:6px 9px;min-width:40px}
 .editor-area th{background:var(--paper2)}
 
-/* Fullscreen editor */
+.ed-wordcount{
+  font-size:11.5px; color:var(--muted); font-style:italic;
+  padding:0 8px; white-space:nowrap; font-variant-numeric:tabular-nums;
+  margin-left:auto; margin-right:6px;
+}
+.editor.editor-fullscreen .ed-wordcount{ font-size:12.5px; }
+
 .editor.editor-fullscreen{
   position:fixed; inset:0; z-index:100; background:var(--bg);
   border-radius:0; border:none; display:flex; flex-direction:column; margin:0;
@@ -222,6 +238,10 @@ select{cursor:pointer}
 .editor.editor-fullscreen .editor-area{
   flex:1; overflow:auto; max-width:900px; width:100%; margin:0 auto;
   font-size:18px; padding:32px 24px 80px; min-height:0;
+}
+.editor.editor-fullscreen .ed-toolbar{
+  position:static; top:auto; flex-shrink:0; overflow:visible;
+  border-bottom:1px solid var(--line);
 }
 
 /* IMG */
@@ -233,7 +253,6 @@ select{cursor:pointer}
 }
 .imgbtns{display:flex;flex-direction:column;gap:6px}
 
-/* TARJETAS */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
 .card{
   background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.08)),var(--paper);
@@ -250,26 +269,41 @@ select{cursor:pointer}
 .cardactions{display:flex;gap:6px;padding:0 14px 14px;flex-wrap:wrap}
 
 .tree-row{
-  display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:4px;cursor:pointer;
+  display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:4px;cursor:pointer;
   font-size:13.5px;color:var(--ink-dim);transition:.12s;border:1px solid transparent;
+  -webkit-tap-highlight-color:transparent;
 }
 .tree-row:hover{background:var(--paper2);color:var(--ink)}
 .tree-row.active{background:linear-gradient(90deg,#33281a,#1f1913);color:var(--gold);border-color:var(--gold-soft)}
 .tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* ---------- MAPA ---------- */
 .mapbox{
   position:relative;width:100%;min-height:340px;border:1px solid var(--line);border-radius:var(--radius);
-  background:#0d0a07 center/contain no-repeat;overflow:hidden;cursor:crosshair;
+  background:#0d0a07 center/contain no-repeat;overflow:hidden;
+  cursor:crosshair;touch-action:none;
+}
+.mapbox.view-mode{ cursor:default; }
+.mapbox.edit-mode{ cursor:crosshair; }
+.map-edit-toggle{
+  position:absolute;top:10px;right:10px;z-index:6;
+  box-shadow:0 3px 10px #000a; backdrop-filter:blur(3px);
 }
 .pin{
-  position:absolute;transform:translate(-50%,-100%);cursor:grab;
+  position:absolute;transform:translate(-50%,-100%);
   background:linear-gradient(#6b5715,#4a3d10);border:1px solid var(--gold);color:#f5e9c8;
-  font-size:11px;padding:2px 7px;border-radius:10px;white-space:nowrap;user-select:none;
+  font-size:11px;padding:3px 8px;border-radius:10px;white-space:nowrap;user-select:none;
   box-shadow:0 2px 6px #000a;z-index:3;
+  transition:transform .12s, filter .12s;
 }
 .pin:before{content:'▼';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);color:var(--gold);font-size:9px}
+.pin.editable{ cursor:grab; touch-action:none; }
+.pin.editable:active{ cursor:grabbing; filter:brightness(1.2); }
+.pin.clickable{ cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.pin.clickable:hover{ filter:brightness(1.25); transform:translate(-50%,-100%) scale(1.1); }
+.pin.clickable:active{ transform:translate(-50%,-100%) scale(1.05); }
 .pinlist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-.pinrow{display:flex;gap:8px;align-items:center;background:var(--bg2);padding:6px 8px;border-radius:4px;border:1px solid var(--line);flex-wrap:wrap}
+.pinrow{display:flex;gap:8px;align-items:center;background:var(--bg2);padding:8px 10px;border-radius:4px;border:1px solid var(--line);flex-wrap:wrap}
 .pinrow input{flex:1;min-width:80px}
 .pinrow select{flex:1;min-width:100px}
 
@@ -304,15 +338,14 @@ select{cursor:pointer}
 .node:hover{border-color:var(--gold)}
 .node .nimg{width:38px;height:38px;border-radius:50%;background:var(--bg) center/cover;margin:0 auto 5px;border:1px solid var(--line2)}
 .nodename{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.relrow{display:flex;gap:8px;align-items:center;background:var(--bg2);padding:7px 10px;border-radius:4px;border:1px solid var(--line);margin-bottom:6px;flex-wrap:wrap}
+.relrow{display:flex;gap:8px;align-items:center;background:var(--bg2);padding:8px 10px;border-radius:4px;border:1px solid var(--line);margin-bottom:6px;flex-wrap:wrap}
 .relrow .rel-txt{flex:1;font-size:13.5px;min-width:120px}
 .relrow .rel-txt b{color:var(--gold)}
 
-/* CHIPS / LINKS / GENRES */
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .chip{
   display:inline-flex;align-items:center;gap:6px;background:var(--paper2);border:1px solid var(--line2);
-  border-radius:14px;padding:3px 6px 3px 10px;font-size:12.5px;color:var(--ink-dim);
+  border-radius:14px;padding:4px 8px 4px 11px;font-size:12.5px;color:var(--ink-dim);
 }
 .chip:hover{border-color:var(--gold-soft);color:var(--ink)}
 .chip .x{cursor:pointer;color:var(--red);font-weight:bold;padding:0 4px;border-radius:50%}
@@ -320,7 +353,6 @@ select{cursor:pointer}
 .chip.chip-add{cursor:pointer;color:var(--gold);border-style:dashed}
 .chip.chip-add:hover{background:var(--paper2)}
 
-/* MODAL */
 .modal-back{
   position:fixed;inset:0;background:#000000bb;backdrop-filter:blur(3px);
   display:none;align-items:center;justify-content:center;z-index:200;padding:20px;
@@ -335,15 +367,15 @@ select{cursor:pointer}
 .modal p{margin:0 0 14px;color:var(--ink-dim);line-height:1.6}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
 .picklist{max-height:280px;overflow:auto;margin-top:8px}
-.pickitem{padding:8px 12px;border-radius:4px;cursor:pointer;font-size:14px;color:var(--ink-dim);display:flex;gap:8px;align-items:center}
+.pickitem{padding:10px 12px;border-radius:4px;cursor:pointer;font-size:14px;color:var(--ink-dim);display:flex;gap:8px;align-items:center;-webkit-tap-highlight-color:transparent}
 .pickitem:hover{background:var(--paper2);color:var(--ink)}
 
-/* TOAST */
 .toast{
   position:fixed;bottom:26px;left:50%;transform:translate(-50%,80px);
   background:linear-gradient(var(--line),var(--paper2));border:1px solid var(--gold-soft);color:var(--ink);
   padding:10px 20px;border-radius:20px;font-size:13.5px;opacity:0;transition:.3s;z-index:300;
   box-shadow:0 8px 24px #000a;pointer-events:none;
+  max-width:calc(100% - 24px);
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
@@ -371,24 +403,23 @@ select{cursor:pointer}
 .list-item.has-check{ padding-left:28px; }
 .li-check{
   position:absolute; left:6px; top:50%; transform:translateY(-50%);
-  width:15px; height:15px; cursor:pointer; accent-color:var(--gold);
+  width:16px; height:16px; cursor:pointer; accent-color:var(--gold);
   opacity:0; transition:.15s; margin:0;
 }
 .list-item:hover .li-check, .list-item.selected .li-check{ opacity:1; }
 .li-move .folder-btn{ color:var(--gold); font-size:11px; }
 .folder-header.drop-target{background:linear-gradient(90deg,#4a3d10,var(--paper2));border-color:var(--gold);box-shadow:0 0 0 2px var(--gold-soft);}
 .char-bulk{
-  display:flex; align-items:center; gap:6px; padding:6px 10px; margin-bottom:6px;
+  display:flex; align-items:center; gap:6px; padding:8px 10px; margin-bottom:6px;
   background:linear-gradient(90deg,var(--line),var(--paper2));
   border:1px solid var(--gold-soft); border-radius:4px;
   font-size:12.5px; color:var(--ink); flex-wrap:wrap;
 }
 .char-bulk .info{ flex:1; font-weight:600; color:var(--gold); }
-.char-bulk select{ padding:3px 5px!important; font-size:12px!important; width:auto!important; }
+.char-bulk select{ padding:5px 6px!important; font-size:12.5px!important; width:auto!important; }
 .folder-quick-menu .pickitem{padding:6px 10px; font-size:12.5px; cursor:pointer; border-radius:3px; color:var(--ink-dim); transition:.12s;}
 .folder-quick-menu .pickitem:hover{ background:var(--paper2); color:var(--gold); }
 
-/* Timeline horizontal */
 .tl-h-wrap{ overflow-x:auto; padding:10px 0 20px; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg); }
 .tl-h-rail{ position:relative; min-height:560px; }
 .tl-h-axis{
@@ -413,7 +444,7 @@ select{cursor:pointer}
 .tl-h-desc{ font-size:12px; color:var(--ink-dim); line-height:1.4; margin-top:4px; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
 .tl-h-actions{ position:absolute; top:4px; right:4px; display:flex; gap:3px; opacity:0; transition:.15s; }
 .tl-h-card:hover .tl-h-actions{ opacity:1; }
-.tl-h-actions button{ background:var(--paper2); border:1px solid var(--line); color:var(--ink-dim); border-radius:3px; width:20px; height:20px; font-size:11px; cursor:pointer; padding:0; line-height:1; font-family:inherit; }
+.tl-h-actions button{ background:var(--paper2); border:1px solid var(--line); color:var(--ink-dim); border-radius:3px; width:22px; height:22px; font-size:11px; cursor:pointer; padding:0; line-height:1; font-family:inherit; }
 .tl-h-actions button:hover{ color:var(--gold); border-color:var(--gold-soft); background:var(--line); }
 .tl-h-actions button.danger:hover{ color:#ffd9d4; border-color:var(--red); background:#3a1d19; }
 .tl-zoom{ display:inline-flex; align-items:center; gap:4px; padding:2px 6px; background:var(--bg2); border:1px solid var(--line); border-radius:4px; }
@@ -440,7 +471,7 @@ select{cursor:pointer}
 .cmdk-box{ background:linear-gradient(180deg,var(--paper2),var(--bg2));border:1px solid var(--gold-soft); border-radius:8px;max-width:560px;width:100%;box-shadow:0 20px 60px #000c;overflow:hidden; }
 .cmdk-box input{ width:100%;background:var(--bg);border:none;border-bottom:1px solid var(--line); color:var(--ink);padding:14px 16px;font-family:inherit;font-size:16px;outline:none; }
 .cmdk-list{ max-height:50vh; overflow-y:auto; padding:6px; }
-.cmdk-item{ display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:5px;cursor:pointer; color:var(--ink-dim);font-size:14px; }
+.cmdk-item{ display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:5px;cursor:pointer; color:var(--ink-dim);font-size:14px; }
 .cmdk-item:hover, .cmdk-item.active{ background:var(--paper2); color:var(--ink); }
 .cmdk-item .ci-icon{ width:20px;text-align:center; }
 .cmdk-item .ci-name{ flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
@@ -449,10 +480,9 @@ select{cursor:pointer}
 
 .btn-hamb{ display:none; font-size:16px; padding:6px 10px; }
 .btn-collapse{ font-size:15px; padding:6px 10px; }
-.sidebar-overlay{ display:none; position:fixed; inset:54px 0 0 0; background:#000000a0; z-index:60; }
+.sidebar-overlay{ display:none; position:fixed; inset:var(--topbar-h) 0 0 0; background:#000000a0; z-index:60; }
 .sidebar-overlay.show{ display:block; }
 
-/* FILTROS */
 .filter-panel{
   display:none;
   background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius);
@@ -461,15 +491,14 @@ select{cursor:pointer}
 .filter-panel.open{ display:flex; }
 .filter-panel .fp-row{ display:flex; gap:6px; flex-wrap:wrap; width:100%; }
 .filter-panel label{ flex:1; min-width:120px; display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--gold-soft); text-transform:uppercase; letter-spacing:.6px; }
-.filter-panel input, .filter-panel select{ padding:5px 8px!important; font-size:12.5px!important; }
+.filter-panel input, .filter-panel select{ padding:7px 9px!important; font-size:13px!important; }
 
-/* SECCIONES DINÁMICAS */
 .sections-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
 .dyn-section{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
 .dyn-section.full{ grid-column:1/-1; }
-.dyn-section-head{ display:flex; align-items:center; gap:6px; padding:6px 10px; background:linear-gradient(var(--paper2),var(--bg2)); border-bottom:1px solid var(--line); }
+.dyn-section-head{ display:flex; align-items:center; gap:6px; padding:7px 10px; background:linear-gradient(var(--paper2),var(--bg2)); border-bottom:1px solid var(--line); }
 .dyn-section-head .caret{ cursor:pointer; color:var(--gold); width:14px; text-align:center; font-size:11px; }
-.dyn-section-head .dyn-title{ flex:1; background:transparent; border:none; color:var(--gold); font-size:12.5px; text-transform:uppercase; letter-spacing:1px; padding:2px 4px; font-family:inherit; }
+.dyn-section-head .dyn-title{ flex:1; background:transparent; border:none; color:var(--gold); font-size:12.5px; text-transform:uppercase; letter-spacing:1px; padding:2px 4px; font-family:inherit; min-width:0; }
 .dyn-section-head .dyn-title:focus{ background:rgba(0,0,0,.3); border-radius:3px; outline:none; }
 .dyn-section-head button{ padding:2px 6px!important; font-size:11px!important; }
 .dyn-section-body{ padding:10px 12px; }
@@ -478,14 +507,12 @@ select{cursor:pointer}
 
 .sections-toolbar{ display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
 
-/* CALENDARIO (cronología) */
 .cal-editor{ background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px; margin-bottom:12px; }
 .cal-editor h4{ font-size:12px; color:var(--gold-soft); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
-.cal-row{ display:flex; gap:6px; align-items:center; background:var(--bg); padding:5px 8px; border-radius:4px; border:1px solid var(--line); margin-bottom:5px; flex-wrap:wrap; }
-.cal-row input{ flex:1; min-width:80px; padding:4px 7px!important; font-size:12.5px!important; }
+.cal-row{ display:flex; gap:6px; align-items:center; background:var(--bg); padding:6px 8px; border-radius:4px; border:1px solid var(--line); margin-bottom:5px; flex-wrap:wrap; }
+.cal-row input{ flex:1; min-width:80px; padding:6px 8px!important; font-size:13px!important; }
 .cal-row button{ padding:2px 6px!important; font-size:11px!important; }
 
-/* ALTURAS */
 .height-chart{
   position:relative; min-height:520px; background:var(--bg);
   border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; padding:20px;
@@ -505,7 +532,6 @@ select{cursor:pointer}
 .height-fig .name{ font-size:11.5px; color:var(--ink); text-align:center; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .height-fig .val{ font-size:10.5px; color:var(--gold-soft); }
 
-/* SETTINGS */
 .theme-preview{
   display:flex; gap:8px; flex-wrap:wrap;
 }
@@ -525,46 +551,18 @@ select{cursor:pointer}
 .settings-row label{ flex:1; min-width:140px; font-size:13px; color:var(--ink); }
 .settings-row input[type=color]{ width:44px; height:30px; padding:2px; }
 
-/* Genre chips en portada */
 .genre-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 .genre-chip{
   display:inline-flex; align-items:center; gap:5px; background:var(--paper2); border:1px solid var(--line2);
-  border-radius:12px; padding:3px 8px; font-size:12.5px; color:var(--ink);
+  border-radius:12px; padding:4px 9px; font-size:12.5px; color:var(--ink);
 }
 .genre-chip .x{cursor:pointer; color:var(--red); font-weight:bold; font-size:11px; padding:0 2px;}
 .genre-chip-add{
   display:inline-flex; align-items:center; gap:5px; background:transparent; border:1px dashed var(--gold-soft);
-  border-radius:12px; padding:3px 10px; font-size:12.5px; color:var(--gold); cursor:pointer;
+  border-radius:12px; padding:4px 10px; font-size:12.5px; color:var(--gold); cursor:pointer;
 }
 .genre-chip-add:hover{ background:var(--paper2); }
 
-@media(max-width:820px){
-  .btn-hamb{ display:inline-flex; align-items:center; justify-content:center; }
-  .btn-collapse{ display:none; }
-  .brand{ font-size:15px; }
-  #topProjName{ display:none; }
-  .top-actions{ overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; max-width:56vw; }
-  .top-actions::-webkit-scrollbar{ display:none; }
-  .top-actions .btn{ flex:0 0 auto; }
-  .sidebar{
-    position:fixed; left:0; top:54px; bottom:0; width:250px; flex:none; z-index:61;
-    transform:translateX(-100%); transition:transform .2s ease; box-shadow:6px 0 24px #000a;
-  }
-  .sidebar.open{ transform:translateX(0); }
-  .layout{ height:calc(100vh - 54px); }
-  .main{ padding:16px 14px 90px; }
-  .page-head h1{ font-size:21px; }
-  input,textarea,select{ font-size:16px!important; }
-  .title-input{ font-size:19px!important; }
-  .modal{ padding:18px 16px; }
-  .nc-toolbar{ top:auto; bottom:10px; right:10px; }
-  .collapse-head{ padding:10px 14px; }
-  .collapse-body{ padding:14px 16px; }
-  .sections-grid{ grid-template-columns:1fr; }
-  .editor.editor-fullscreen .editor-area{ font-size:16px; padding:20px 14px 90px; }
-}
-
-/* ---------- VISTA CALENDARIO ---------- */
 .cal-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap;}
 .cal-year-label{font-size:16px;color:var(--gold);font-weight:600;letter-spacing:1px;}
 .cal-months{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:16px;}
@@ -582,15 +580,7 @@ select{cursor:pointer}
 .cal-chips{display:flex;flex-direction:column;gap:2px;margin-top:2px;}
 .cal-chip{font-size:10px;color:#1a130a;padding:1px 4px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-weight:600;}
 .cal-chip:hover{filter:brightness(1.15);}
-@media(max-width:600px){
-  .cal-months{grid-template-columns:1fr;}
-  .cal-cell{min-height:44px;padding:2px 4px;}
-  .cal-weekday{font-size:9px;}
-  .cal-day-num{font-size:10px;}
-  .cal-chip{font-size:9px;padding:1px 3px;}
-}
 
-/* ---------- LIGHTBOX (imágenes a pantalla completa) ---------- */
 .lightbox-back{
   position:fixed; inset:0; background:#000000ee; z-index:600;
   display:none; align-items:center; justify-content:center; overflow:hidden;
@@ -605,7 +595,7 @@ select{cursor:pointer}
 .lightbox-close{
   position:absolute; top:14px; right:14px; z-index:2;
   background:linear-gradient(var(--paper2),var(--bg2)); border:1px solid var(--line2);
-  color:var(--ink); width:38px; height:38px; border-radius:50%;
+  color:var(--ink); width:42px; height:42px; border-radius:50%;
   cursor:pointer; font-size:20px; line-height:1; font-family:inherit;
 }
 .lightbox-close:hover{ border-color:var(--gold-soft); color:var(--gold); }
@@ -625,7 +615,6 @@ select{cursor:pointer}
   font-variant-numeric:tabular-nums;
 }
 
-/* ---------- ESTADÍSTICAS ---------- */
 .stats-blocks{ display:flex; flex-direction:column; gap:12px; margin-top:12px; }
 .stat-chart-bars{ display:flex; flex-direction:column; gap:7px; margin-top:6px; }
 .stat-bar-row{ display:flex; align-items:center; gap:8px; }
@@ -638,34 +627,319 @@ select{cursor:pointer}
   font-variant-numeric:tabular-nums; }
 .stat-chart-spider{ display:block; margin:6px auto; }
 .stat-entry-row{ display:flex; gap:6px; align-items:center; background:var(--bg);
-  padding:5px 7px; border-radius:4px; border:1px solid var(--line); margin-bottom:5px; flex-wrap:wrap; }
-.stat-entry-row input[type=text]{ flex:1 1 110px; min-width:0; padding:5px 8px!important; font-size:12.5px!important; }
-.stat-entry-row input[type=number]{ flex:0 0 60px; padding:5px 8px!important; font-size:12.5px!important; }
-.stat-entry-row input[type=color]{ flex:0 0 30px; height:26px; padding:1px; border:1px solid var(--line); background:transparent; cursor:pointer; }
+  padding:6px 8px; border-radius:4px; border:1px solid var(--line); margin-bottom:5px; flex-wrap:wrap; }
+.stat-entry-row input[type=text]{ flex:1 1 110px; min-width:0; padding:6px 8px!important; font-size:13px!important; }
+.stat-entry-row input[type=number]{ flex:0 0 60px; padding:6px 8px!important; font-size:13px!important; }
+.stat-entry-row input[type=color]{ flex:0 0 32px; height:28px; padding:1px; border:1px solid var(--line); background:transparent; cursor:pointer; }
 .stat-entry-row button{ padding:3px 7px!important; font-size:11px!important; }
 .stat-empty-hint{ color:var(--muted); font-style:italic; font-size:12px; padding:6px 0; }
 
-/* ---------- AJUSTES: toggles de secciones ---------- */
 .section-toggle-row{
-  display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:4px;
+  display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:4px;
   background:var(--bg2); border:1px solid var(--line); margin-bottom:4px;
   cursor:pointer; transition:.12s;
 }
 .section-toggle-row:hover{ background:var(--paper2); border-color:var(--gold-soft); }
 .section-toggle-row input{ width:auto; margin:0; accent-color:var(--gold); }
 .section-toggle-row .stg-name{ flex:1; font-size:13.5px; color:var(--ink); }
-.section-toggle-row .stg-group{ font-size:10.5px; color:var(--gold-soft);
-  text-transform:uppercase; letter-spacing:.8px; }
 .section-toggle-group-title{ font-size:11px; letter-spacing:1.4px; text-transform:uppercase;
   color:var(--gold-soft); margin:14px 0 6px; font-weight:600; }
 .section-toggle-group-title:first-child{ margin-top:0; }
 
-/* ---------- Fix editor fullscreen toolbar ---------- */
-.editor.editor-fullscreen .ed-toolbar{
-  position:static; top:auto; flex-shrink:0; overflow:visible;
-  border-bottom:1px solid var(--line);
+.backlinks-list{ display:flex; flex-direction:column; gap:4px; }
+.backlink-row{
+  display:flex; align-items:center; gap:8px; padding:8px 10px;
+  background:var(--bg2); border:1px solid var(--line); border-radius:4px;
+  cursor:pointer; font-size:13px; color:var(--ink-dim); transition:.12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.backlink-row:hover{ background:var(--paper2); border-color:var(--gold-soft); color:var(--ink); }
+.backlink-row .bl-icon{ width:18px; text-align:center; }
+.backlink-row .bl-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.backlink-row .bl-via{ font-size:10.5px; color:var(--gold-soft); text-transform:uppercase; letter-spacing:.5px; }
+
+.export-modal .format-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr));
+  gap:8px; margin:10px 0 14px;
+}
+.export-modal .fmt-card{
+  padding:12px 8px; border:2px solid var(--line2); border-radius:6px;
+  background:var(--bg2); cursor:pointer; text-align:center; transition:.15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.export-modal .fmt-card:hover{ border-color:var(--gold-soft); transform:translateY(-2px); }
+.export-modal .fmt-card.active{ border-color:var(--gold); background:var(--paper2); box-shadow:0 0 0 2px var(--gold-soft); }
+.export-modal .fmt-card .fc-icon{ font-size:22px; line-height:1; }
+.export-modal .fmt-card .fc-label{ font-size:12px; color:var(--ink); margin-top:6px; }
+
+.nav-stats{
+  margin-top:10px; padding:10px 12px;
+  border-top:1px solid var(--line);
+  font-size:12px; color:var(--muted); font-style:italic;
+  text-align:center; letter-spacing:.3px;
+}
+.nav-stats b{ color:var(--gold); font-style:normal; font-variant-numeric:tabular-nums; }
+
+/* ============================================================
+   MOBILE — Todo se adapta para pantallas táctiles pequeñas
+============================================================ */
+@media(max-width:820px){
+  html, body { overflow-x:hidden; }
+  :root{ --topbar-h:52px; }
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    height:var(--topbar-h); min-height:var(--topbar-h);
+    padding:0 8px; gap:6px;
+  }
+  .btn-hamb{ display:inline-flex; align-items:center; justify-content:center; padding:6px 9px; font-size:17px; }
+  .btn-collapse{ display:none; }
+  .brand{ font-size:14px; }
+  #topProjName{ display:none; }
+  .savestate{ display:none; }
+  .top-actions{
+    flex:1; gap:4px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; justify-content:flex-end;
+  }
+  .top-actions::-webkit-scrollbar{ display:none; }
+  .top-actions .btn{ padding:6px 9px; font-size:12px; flex:0 0 auto; }
+  .top-actions .btn.primary{ padding:6px 10px; }
+
+  /* ---------- LAYOUT ---------- */
+  .layout{ height:calc(100dvh - var(--topbar-h)); }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    position:fixed; left:0; top:var(--topbar-h); bottom:0;
+    width:min(85vw, 300px); flex:none; z-index:61;
+    transform:translateX(-100%); transition:transform .22s ease;
+    box-shadow:6px 0 24px #000a;
+    padding:14px 10px calc(14px + env(safe-area-inset-bottom,0px));
+    padding-bottom:24px;
+  }
+  .sidebar.open{ transform:translateX(0); }
+  .sidebar-overlay{ top:var(--topbar-h); }
+  .navitem{ padding:10px 10px; font-size:15px; }
+
+  /* ---------- MAIN ---------- */
+  .main{
+    padding:14px 12px calc(90px + env(safe-area-inset-bottom,0px));
+    -webkit-overflow-scrolling:touch;
+  }
+  .page-head{ margin-bottom:14px; gap:8px; }
+  .page-head h1{ font-size:20px; }
+  .page-head h1:before{ font-size:17px; }
+
+  /* ---------- PAPER ---------- */
+  .paper{ padding:14px 14px; }
+  .paper + .paper{ margin-top:12px; }
+
+  /* ---------- SPLIT (listas + detalle) ---------- */
+  .split{ flex-direction:column; gap:12px; }
+  .pane-list{
+    width:100% !important; flex:auto; position:static;
+    max-height:44vh; overflow-y:auto; overflow-x:hidden;
+    padding:8px; border:1px solid var(--line); border-radius:var(--radius);
+    background:linear-gradient(180deg, rgba(0,0,0,.15), transparent);
+    -webkit-overflow-scrolling:touch;
+  }
+  .pane-list .pane-head{
+    position:sticky; top:-8px; z-index:3;
+    margin:-8px -8px 6px; padding:8px 8px 6px;
+    background:var(--bg2);
+    border-bottom:1px solid var(--line);
+  }
+  .pane-detail{ width:100%; }
+
+  /* ---------- INPUTS & BOTONES ---------- */
+  input, textarea, select{ font-size:16px !important; }
+  .title-input{ font-size:19px !important; }
+  .btn{ padding:8px 12px; font-size:13px; }
+  .btn.small{ padding:6px 10px; font-size:12px; }
+  .field > span{ font-size:11px; }
+  .grid2{ grid-template-columns:1fr; gap:0; }
+  .title-row{ gap:8px; }
+  .title-row .row-actions{ width:100%; justify-content:flex-start; }
+
+  /* ---------- EDITOR ---------- */
+  .ed-toolbar{
+    gap:2px; padding:5px; flex-wrap:wrap;
+    overflow-x:auto; flex-wrap:wrap; -webkit-overflow-scrolling:touch;
+  }
+  .ed-toolbar button{ min-width:30px; height:30px; font-size:12.5px; padding:0 5px; }
+  .ed-sel{ font-size:11.5px !important; height:30px !important; padding:2px 4px !important; }
+  .ed-color{ height:30px; padding:0 4px; font-size:11px; gap:1px; }
+  .ed-color input{ width:22px; height:22px; }
+  .ed-wordcount{ font-size:10.5px; padding:0 4px; margin-right:2px; }
+  .editor-area{ font-size:16px; padding:12px 14px; min-height:130px; }
+  .editor.editor-fullscreen .editor-area{ font-size:17px; padding:16px 14px 80px; }
+
+  /* ---------- IMÁGENES ---------- */
+  .imgpick{ flex-direction:column; align-items:stretch; gap:10px; }
+  .imgprev{ width:100%; height:160px; flex:none; }
+  .imgbtns{ flex-direction:row; flex-wrap:wrap; }
+  .imgbtns .btn{ flex:1 1 100px; min-width:0; }
+
+  /* ---------- LIGHTBOX ---------- */
+  .lightbox-close{ width:44px; height:44px; top:10px; right:10px; }
+  .lightbox-toolbar{ bottom:calc(14px + env(safe-area-inset-bottom,0px)); }
+  .lightbox-toolbar button{ padding:8px 12px; font-size:18px; }
+
+  /* ---------- MODAL (bottom sheet) ---------- */
+  .modal-back{ padding:6px; align-items:flex-end; }
+  .modal{
+    padding:18px 16px 20px; max-height:92dvh;
+    border-radius:14px 14px 0 0; max-width:none; width:100%;
+  }
+  .modal h3{ font-size:17px; margin-bottom:10px; }
+  .modal-actions{
+    flex-direction:column-reverse; gap:6px;
+    position:sticky; bottom:-20px;
+    padding:12px 16px calc(8px + env(safe-area-inset-bottom,0px));
+    margin:14px -16px -20px;
+    background:linear-gradient(transparent, var(--bg2) 22%);
+    border-top:1px solid var(--line);
+  }
+  .modal-actions .btn{ width:100%; padding:11px 12px; font-size:14px; }
+
+  /* ---------- CMDK ---------- */
+  .cmdk-back{ padding:calc(6vh + env(safe-area-inset-top,0px)) 10px 10px; align-items:flex-start; }
+  .cmdk-box{ border-radius:12px; max-width:100%; }
+  .cmdk-item{ padding:12px 12px; }
+
+  /* ---------- LISTAS ---------- */
+  .list-item{ padding:11px 12px; }
+  .list-item .li-title{ font-size:14.5px; }
+  .list-item .li-sub{ font-size:12px; }
+  .li-move, .li-check, .fbtns, .tl-h-actions{ opacity:1 !important; }
+  .li-move button, .fbtns button{ height:24px; font-size:11px; padding:0 6px; }
+  .folder-header{ padding:9px 10px; font-size:13px; }
+
+  /* ---------- MAPA ---------- */
+  .mapbox{ min-height:260px; }
+  .pin{ font-size:11px; padding:4px 9px; }
+  .pin.clickable:hover{ transform:translate(-50%,-100%); }
+  .pinrow{ padding:9px 10px; gap:6px; }
+  .pinrow input, .pinrow select{ flex:1 1 100%; min-width:0; }
+  .map-edit-toggle{
+    top:auto; bottom:10px; right:10px;
+    padding:8px 12px !important; font-size:12px !important;
+  }
+
+  /* ---------- NETWORK / GENEALOGÍA ---------- */
+  .nc-viewport{ height:64vh; min-height:280px; }
+  .nc-toolbar{
+    top:auto; bottom:10px; right:10px;
+    padding:5px 6px; gap:3px; max-width:calc(100% - 20px);
+  }
+  .nc-toolbar .btn{ padding:6px 9px; font-size:11.5px; }
+  .nc-zoomval{ font-size:11px; min-width:36px; }
+  .node{ font-size:12px; padding:7px 10px; max-width:130px; }
+  .node .nimg{ width:32px; height:32px; margin-bottom:4px; }
+
+  /* ---------- CALENDARIO ---------- */
+  .cal-months{ grid-template-columns:1fr; }
+  .cal-cell{ min-height:50px; padding:3px 4px; }
+  .cal-nav{ font-size:12px; gap:6px; }
+  .cal-nav .btn{ padding:7px 10px; font-size:12px; }
+  .cal-year-label{ font-size:14px; }
+  .cal-weekday{ font-size:9.5px; }
+  .cal-day-num{ font-size:11px; }
+  .cal-chip{ font-size:9.5px; padding:1px 3px; }
+
+  /* ---------- TIMELINE HORIZONTAL ---------- */
+  .tl-h-wrap{ padding:6px 0 14px; }
+  .tl-h-rail{ min-height:480px; }
+  .tl-h-col{ width:220px; }
+  .tl-h-card{ padding:11px 13px; }
+  .tl-h-year{ font-size:10px; }
+  .tl-zoom{ padding:3px 6px; }
+
+  /* ---------- TIMELINE VERTICAL ---------- */
+  .tl{ padding-left:26px; }
+  .tl:before{ left:8px; }
+  .tl-item{ padding:11px 12px; }
+  .tl-item:before{ left:-24px; top:16px; width:10px; height:10px; }
+
+  /* ---------- SECCIONES DINÁMICAS ---------- */
+  .sections-grid{ grid-template-columns:1fr; gap:10px; }
+  .dyn-section-head{ padding:8px 10px; }
+  .dyn-section-head .dyn-title{ font-size:12px; }
+
+  /* ---------- ESTADÍSTICAS ---------- */
+  .statgrid{ grid-template-columns:repeat(auto-fill, minmax(105px, 1fr)); gap:8px; }
+  .stat b{ font-size:20px; }
+  .stat span{ font-size:10.5px; letter-spacing:.5px; }
+  .stat-entry-row{ padding:7px; gap:5px; }
+  .stat-entry-row input[type=text]{ flex:1 1 100%; }
+  .stat-entry-row input[type=number]{ flex:1 1 42%; }
+  .stat-bar-label{ flex:0 0 80px; font-size:11.5px; }
+  .stat-bar-value{ flex:0 0 52px; font-size:11px; }
+  .stat-chart-spider{ max-width:100%; }
+
+  /* ---------- CALENDAR CONFIG ---------- */
+  .cal-row{ padding:7px 8px; gap:5px; }
+  .cal-row input[data-n]{ flex:1 1 100%; }
+  .cal-row input[data-d]{ flex:1 1 60px; }
+
+  /* ---------- RELACIONES ---------- */
+  .relrow{ padding:9px 10px; gap:6px; }
+  .relrow .rel-txt{ flex:1 1 100%; font-size:12.5px; }
+
+  /* ---------- CHIPS ---------- */
+  .chip{ font-size:12px; padding:4px 8px 4px 11px; }
+  .char-bulk{ padding:7px 9px; gap:5px; }
+  .char-bulk select{ flex:1; min-width:0; }
+
+  /* ---------- ALTURAS ---------- */
+  .height-chart{ min-height:400px; padding:16px 8px; }
+  .height-fig .bar{ width:18px; }
+  .height-fig .name{ font-size:10.5px; max-width:60px; }
+  .height-fig .val{ font-size:10px; }
+
+  /* ---------- AJUSTES ---------- */
+  .theme-card{ width:calc(50% - 4px); }
+  .theme-preview{ gap:6px; }
+  .settings-row{ padding:10px 0; }
+
+  /* ---------- EXPORT ---------- */
+  .export-modal .format-grid{ grid-template-columns:repeat(2, 1fr); gap:6px; }
+  .export-modal .fmt-card{ padding:14px 6px; }
+  .export-modal .fmt-card .fc-icon{ font-size:24px; }
+
+  /* ---------- TOAST ---------- */
+  .toast{
+    bottom:calc(14px + env(safe-area-inset-bottom,0px));
+    font-size:12.5px; padding:10px 16px;
+    max-width:calc(100% - 20px); text-align:center;
+  }
+
+  /* ---------- COLLAPSE ---------- */
+  .collapse-head{ padding:10px 14px; }
+  .collapse-head h2{ font-size:16px; }
+  .collapse-body{ padding:14px 14px; }
+
+  /* ---------- BACKLINKS ---------- */
+  .backlink-row{ padding:9px 10px; }
+  .backlink-row .bl-via{ font-size:10px; }
+
+  /* ---------- TREE ROW ---------- */
+  .tree-row{ padding:9px 8px; font-size:13.5px; }
 }
 
+@media(max-width:480px){
+  .main{ padding:12px 10px calc(90px + env(safe-area-inset-bottom,0px)); }
+  .paper{ padding:12px 12px; }
+  .pane-list{ max-height:40vh; }
+  .modal{ padding:16px 14px 18px; }
+  .modal-actions{ margin:12px -14px -18px; padding:10px 14px calc(8px + env(safe-area-inset-bottom,0px)); }
+  .ed-toolbar button{ min-width:28px; height:28px; font-size:12px; }
+  .ed-wordcount{ font-size:10px; }
+  .btn.small{ padding:5px 9px; font-size:11.5px; }
+  .page-head h1{ font-size:18px; }
+  .theme-card{ width:100%; }
+  .statgrid{ grid-template-columns:repeat(2, 1fr); }
+}
 </style>
 </head>
 <body>
@@ -676,7 +950,7 @@ select{cursor:pointer}
   <div class="brand">📖 <b>Codex</b></div>
   <div id="topProjName">—</div>
   <div class="top-actions">
-    <button class="btn ghost" id="btnSearch" title="Buscar en el proyecto (Ctrl+K)">🔍</button>
+    <button class="btn ghost" id="btnSearch" title="Buscar en el proyecto (Ctrl+K)" aria-label="Buscar">🔍</button>
     <span class="savestate" id="saveState"></span>
     <button class="btn" id="btnLibrary">Biblioteca</button>
     <button class="btn" id="btnExport">Exportar</button>
@@ -730,11 +1004,111 @@ function reassignIds(o){
   }
 }
 function dupeItem(item){ const c = deepClone(item); reassignIds(c); return c; }
-function stripHtml(h){ return String(h||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(); }
+function stripHtml(h){ return String(h||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim(); }
 function parseNumber(v){ const n = parseFloat(String(v||'').replace(',','.')); return isFinite(n)?n:null; }
+const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
+
+function countWords(html){
+  const t = stripHtml(html||'');
+  if(!t) return 0;
+  return t.split(/\s+/).filter(Boolean).length;
+}
+function countChars(html){ return stripHtml(html||'').length; }
+
+function compressImage(file, maxDim=1600, quality=0.85){
+  return new Promise((resolve, reject)=>{
+    if(!file) return reject(new Error('No hay archivo'));
+    if(!/^image\//.test(file.type)) return reject(new Error('No es imagen'));
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        try{
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if(!w || !h) return resolve(reader.result);
+          const scale = Math.min(1, maxDim / Math.max(w, h));
+          w = Math.max(1, Math.round(w * scale));
+          h = Math.max(1, Math.round(h * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const keepPng = /png/i.test(file.type) && file.size < 300*1024 && scale === 1;
+          const mime = keepPng ? 'image/png' : 'image/jpeg';
+          resolve(canvas.toDataURL(mime, quality));
+        }catch(e){ reject(e); }
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function projectWordCount(){
+  if(!P) return 0;
+  let n = 0;
+  (P.story.acts||[]).forEach(a=> n += countWords(a.description));
+  (P.story.chapters||[]).forEach(c=> n += countWords(c.content));
+  (P.story.events||[]).forEach(e=> n += countWords(e.content));
+  (P.story.ideas||[]).forEach(i=> n += countWords(i.content));
+  (P.story.timelines||[]).forEach(t=> n += countWords(t.description));
+  (P.characters||[]).forEach(c=>{ n += countWords(c.history); (c.sections||[]).forEach(s=> n += countWords(s.content)); });
+  (P.bestiary||[]).forEach(b=> (b.sections||[]).forEach(s=> n += countWords(s.content)));
+  (P.races||[]).forEach(r=> (r.sections||[]).forEach(s=> n += countWords(s.content)));
+  (P.lore||[]).forEach(l=> (l.sections||[]).forEach(s=> n += countWords(s.content)));
+  (P.notes||[]).forEach(nt=> n += countWords(nt.content));
+  (function walk(arr){ (arr||[]).forEach(z=>{ n += countWords(z.desc); walk(z.children); }); })(P.world);
+  return n;
+}
+
+function htmlToMd(html){
+  if(!html) return '';
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  div.querySelectorAll('img').forEach(img=>{
+    const alt = img.alt || '';
+    img.replaceWith(document.createTextNode(`![${alt}](${img.src})`));
+  });
+  div.querySelectorAll('a[data-internal]').forEach(a=>{
+    a.replaceWith(document.createTextNode(`[[${a.textContent}]]`));
+  });
+  div.querySelectorAll('a').forEach(a=>{
+    const href = a.getAttribute('href') || a.href || '';
+    a.replaceWith(document.createTextNode(`[${a.textContent}](${href})`));
+  });
+  div.querySelectorAll('h1').forEach(h=> h.replaceWith(document.createTextNode('\n# '+h.textContent+'\n')));
+  div.querySelectorAll('h2').forEach(h=> h.replaceWith(document.createTextNode('\n## '+h.textContent+'\n')));
+  div.querySelectorAll('h3').forEach(h=> h.replaceWith(document.createTextNode('\n### '+h.textContent+'\n')));
+  div.querySelectorAll('blockquote').forEach(b=> b.replaceWith(document.createTextNode('\n> '+b.textContent+'\n')));
+  div.querySelectorAll('br').forEach(br=> br.replaceWith(document.createTextNode('\n')));
+  div.querySelectorAll('p,div').forEach(p=> p.appendChild(document.createTextNode('\n\n')));
+  div.querySelectorAll('li').forEach(li=> li.insertBefore(document.createTextNode('- '), li.firstChild));
+  div.querySelectorAll('strong,b').forEach(el=> el.replaceWith(document.createTextNode('**'+el.textContent+'**')));
+  div.querySelectorAll('em,i').forEach(el=> el.replaceWith(document.createTextNode('*'+el.textContent+'*')));
+  let text = div.textContent || '';
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
+  return text;
+}
+
+function mdToPlain(md){
+  return String(md||'')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/^>\s?/gm, '')
+    .replace(/^[-*]\s+/gm, '• ')
+    .replace(/\n{3,}/g, '\n\n');
+}
 
 /* ============================================================
-   2. ESTADO Y ALMACENAMIENTO
+   2. ESTADO
 ============================================================ */
 const LS_KEY = 'codex_db_v1';
 let DB = { projects: [], currentId: null };
@@ -801,10 +1175,7 @@ function newProject(name, desc){
   id: uid(), name: name || 'Nuevo Proyecto', description: desc || '', image: '',
   genres: [], subgenres: [],
   createdAt: Date.now(), updatedAt: Date.now(),
-  story: {
-    chapters: [], acts: [], events: [], timelines: [], ideas: [],
-    ideaFolders: []
-  },
+  story: { chapters: [], acts: [], events: [], timelines: [], ideas: [], ideaFolders: [] },
   characters: [], charnets: [], genealogies: [], heightGroups: [],
   bestiary: [], bestiaryFolders: [],
   races: [], raceFolders: [],
@@ -814,49 +1185,33 @@ function newProject(name, desc){
  };
 }
 function newAct(){ return { id: uid(), name:'', description:'', start:'', end:'' }; }
-
 function newZone(type){
   return { id: uid(), type, name:'', image:'', desc:'', location:'',
-           children:[], links:[], map:{ image:'', pins:[] }, characterIds: [] };
+           children:[], links:[], map:{ image:'', pins:[], editMode:true }, characterIds: [] };
 }
 function newCharacter(){
   return {
     id: uid(), name:'', nickname:'', image:'', short:'',
-    age:'', gender:'', height:'', weight:'',
-    roll:'', storyRole:'',
+    age:'', gender:'', height:'', weight:'', roll:'', storyRole:'',
     fields:[], sections: [], stats: [],
-    history:'', timeline:[], keyEvents:'',
-    folder:'', tags: []
+    history:'', timeline:[], keyEvents:'', folder:'', tags: []
   };
 }
 function newBeast(){
-  return {
-    id: uid(), name:'', image:'', short:'',
-    species:'', personality:'', danger:'',
-    fields:[], sections: [], stats: [],
-    folder:''
-  };
+  return { id: uid(), name:'', image:'', short:'', species:'', personality:'', danger:'',
+    fields:[], sections: [], stats: [], folder:'' };
 }
 function newRace(){
-  return {
-    id: uid(), name:'', image:'', short:'',
-    classification:'', lifespan:'',
-    fields:[], sections: [], stats: [],
-    folder:''
-  };
+  return { id: uid(), name:'', image:'', short:'', classification:'', lifespan:'',
+    fields:[], sections: [], stats: [], folder:'' };
 }
 function newLore(){
-  return {
-    id: uid(), name:'', image:'', short:'', type:'',
-    fields:[], sections: [], folder:''
-  };
+  return { id: uid(), name:'', image:'', short:'', type:'', fields:[], sections: [], folder:'' };
 }
 function newGenealogy(){
   return { id: uid(), name:'', description:'', members: [], relations: [], positions: {}, view:{ x:0, y:0, zoom:1, fitted:false } };
 }
-function newHeightGroup(){
-  return { id: uid(), name:'', members: [] };
-}
+function newHeightGroup(){ return { id: uid(), name:'', members: [] }; }
 
 const ZONE_ICON  = {world:'🌍',continent:'🗺',country:'🏰',city:'🏘',place:'📍'};
 const ZONE_CHILD = {world:'continent',continent:'country',country:'city',city:'place',place:'place'};
@@ -888,14 +1243,12 @@ function migrateProject(p){
   if(!Array.isArray(p.genres)) p.genres = [];
   if(!Array.isArray(p.subgenres)) p.subgenres = [];
 
-  // ---- story.acts (antes chapterFolders como strings) ----
   if(!Array.isArray(p.story.acts)) p.story.acts = [];
   if(Array.isArray(p.story.chapterFolders) && p.story.chapterFolders.length){
     p.story.chapterFolders.forEach(name => {
       p.story.acts.push({ id: uid(), name, description:'', start:'', end:'' });
     });
   }
-  // Migrar chapter.folder → chapter.actId
   if(!Array.isArray(p.story.chapters)) p.story.chapters = [];
   p.story.chapters.forEach(c => {
     if(typeof c.actId === 'undefined') c.actId = '';
@@ -911,7 +1264,6 @@ function migrateProject(p){
   });
   delete p.story.chapterFolders;
 
-  // ---- story.events ----
   if(!Array.isArray(p.story.events)) p.story.events = [];
   p.story.events.forEach(e => {
     if(typeof e.type !== 'string') e.type = '';
@@ -921,7 +1273,6 @@ function migrateProject(p){
     if(!Array.isArray(e.characterIds)) e.characterIds = [];
   });
 
-  // ---- story.timelines ----
   if(!Array.isArray(p.story.timelines)) p.story.timelines = [];
   if(Array.isArray(p.story.timeline) && p.story.timeline.length && !p.story.timelines.length){
     p.story.timelines.push({
@@ -942,7 +1293,6 @@ function migrateProject(p){
     if(typeof cal.daysPerMonth !== 'number' || cal.daysPerMonth < 1) cal.daysPerMonth = 30;
     if(!Array.isArray(cal.weekdays) || !cal.weekdays.length) cal.weekdays = ['L','M','X','J','V','S','D'];
     if(typeof cal.currentYear !== 'number') cal.currentYear = 1;
-    // Migrar months de string[] a [{name, days}]
     cal.months = cal.months.map(m => {
       if(typeof m === 'string') return { name: m, days: cal.daysPerMonth || 30 };
       if(!m || typeof m !== 'object') return { name: '', days: cal.daysPerMonth || 30 };
@@ -950,14 +1300,12 @@ function migrateProject(p){
       if(typeof m.days !== 'number' || m.days < 1) m.days = cal.daysPerMonth || 30;
       return m;
     });
-    // Migrar hitos: añadir campos calendario
     t.hitos.forEach(h => {
       if(h.calStart === undefined) h.calStart = null;
       if(h.calEnd === undefined) h.calEnd = null;
       if(!h.calColor) h.calColor = '#c9a227';
     });
   });
-
   if(!p.story.timelines.length){
     p.story.timelines.push({
       id: uid(), name:'Cronología principal', description:'',
@@ -966,7 +1314,6 @@ function migrateProject(p){
     });
   }
 
-  // ---- story.ideas ----
   if(!Array.isArray(p.story.ideas)) p.story.ideas = [];
   if(!Array.isArray(p.story.ideaFolders)) p.story.ideaFolders = [];
   p.story.ideas.forEach(i => {
@@ -974,7 +1321,6 @@ function migrateProject(p){
     if(typeof i.folder !== 'string') i.folder = '';
   });
 
-  // ---- charnets ----
   const hadOldCharnet = p.charnetView !== undefined || Array.isArray(p.relations);
   const hadOldPositions = p.characters.some(c => c && typeof c.nx === 'number' && typeof c.ny === 'number');
   if(!Array.isArray(p.charnets)) p.charnets = [];
@@ -994,8 +1340,7 @@ function migrateProject(p){
     });
     p.charnets.push(net);
   }
-  delete p.relations;
-  delete p.charnetView;
+  delete p.relations; delete p.charnetView;
   p.charnets.forEach(net => {
     if(!net) return;
     if(!Array.isArray(net.members)) net.members = [];
@@ -1008,13 +1353,8 @@ function migrateProject(p){
     net.relations.forEach(r => { if(typeof r.mutual !== 'boolean') r.mutual = true; });
   });
 
-  // ---- Genealogías ----
   if(!Array.isArray(p.genealogies)) p.genealogies = [];
-
-  // ---- Height groups ----
   if(!Array.isArray(p.heightGroups)) p.heightGroups = [];
-
-  // ---- Bestiary ----
   if(!Array.isArray(p.bestiary)) p.bestiary = [];
   if(!Array.isArray(p.bestiaryFolders)) p.bestiaryFolders = [];
   p.bestiary.forEach(b => {
@@ -1027,7 +1367,6 @@ function migrateProject(p){
     if(typeof b.danger !== 'string') b.danger = '';
   });
 
-  // ---- Razas ----
   if(!Array.isArray(p.races)) p.races = [];
   if(!Array.isArray(p.raceFolders)) p.raceFolders = [];
   p.races.forEach(r => {
@@ -1039,7 +1378,6 @@ function migrateProject(p){
     if(typeof r.lifespan !== 'string') r.lifespan = '';
   });
 
-  // ---- Lore ----
   if(!Array.isArray(p.lore)) p.lore = [];
   if(!Array.isArray(p.loreFolders)) p.loreFolders = [];
   p.lore.forEach(l => {
@@ -1049,7 +1387,6 @@ function migrateProject(p){
     if(typeof l.type !== 'string') l.type = '';
   });
 
-  // ---- Personajes: campos nuevos + migrar gustos/disgustos/extra → sections ----
   p.characters.forEach(c => {
     if(!c) return;
     if(!Array.isArray(c.stats)) c.stats = [];
@@ -1071,7 +1408,6 @@ function migrateProject(p){
     if(typeof c.folder !== 'string') c.folder = '';
     if(!Array.isArray(c.tags)) c.tags = [];
 
-    // Migrar antiguos fijos a secciones dinámicas (solo la primera vez)
     if(!c.sections.length){
       if(c.likes && String(c.likes).trim()){
         const s = newSection('half'); s.title = 'Gustos'; s.content = c.likes; c.sections.push(s);
@@ -1086,15 +1422,16 @@ function migrateProject(p){
     delete c.likes; delete c.dislikes; delete c.extra;
   });
 
-  // Settings
   if(!p.settings) p.settings = { theme:'codex', accent:'#c9a227', bodyFont:'', hiddenSections: [] };
   if(!p.settings.theme) p.settings.theme = 'codex';
   if(!Array.isArray(p.settings.hiddenSections)) p.settings.hiddenSections = [];
 
-  // Zonas: characterIds
   (function walkZones(arr){
     (arr||[]).forEach(z => {
       if(!Array.isArray(z.characterIds)) z.characterIds = [];
+      if(!z.map) z.map = { image:'', pins:[], editMode:true };
+      if(typeof z.map.editMode !== 'boolean') z.map.editMode = true;
+      if(!Array.isArray(z.map.pins)) z.map.pins = [];
       walkZones(z.children);
     });
   })(p.world);
@@ -1215,18 +1552,26 @@ function createEditor(value, onChange){
       <button type="button" data-internal title="Enlace interno">🔗✦</button>
       <button type="button" data-bgblock title="Color de fondo">🎨</button>
       <button type="button" data-cmd="removeFormat" title="Quitar formato">⌫</button>
-      <button type="button" data-fullscreen title="Pantalla completa" style="margin-left:auto">⛶</button>
+      <button type="button" data-cmd="undo" title="Deshacer (Ctrl+Z)">↶</button>
+      <button type="button" data-cmd="redo" title="Rehacer (Ctrl+Y)">↷</button>
+      <span class="ed-wordcount" data-wc>0 palabras</span>
+      <button type="button" data-fullscreen title="Pantalla completa">⛶</button>
     </div>
-    <div class="editor-area" contenteditable="true" spellcheck="false"></div>
+    <div class="editor-area" contenteditable="true" spellcheck="true"></div>
   </div>`);
   const area = wrap.querySelector('.editor-area');
   const bar  = wrap.querySelector('.ed-toolbar');
   area.innerHTML = value || '';
-  const fire = () => onChange && onChange(area.innerHTML);
+  const wcEl = bar.querySelector('[data-wc]');
+  function updateWordCount(){
+    const w = countWords(area.innerHTML);
+    wcEl.textContent = w.toLocaleString('es') + (w === 1 ? ' palabra' : ' palabras');
+  }
+  updateWordCount();
+  const fire = () => { onChange && onChange(area.innerHTML); updateWordCount(); };
 
   bar.addEventListener('mousedown', ()=> saveRange(area));
 
-  // Fullscreen
   const fsBtn = bar.querySelector('[data-fullscreen]');
   const setFS = (on) => {
     wrap.classList.toggle('editor-fullscreen', on);
@@ -1281,11 +1626,12 @@ function createEditor(value, onChange){
     saveRange(area);
     const inp = document.createElement('input');
     inp.type='file'; inp.accept='image/*';
-    inp.onchange = ()=>{
+    inp.onchange = async ()=>{
       const f = inp.files[0]; if(!f) return;
-      const r = new FileReader();
-      r.onload = ()=> insertHTML(`<img src="${r.result}"><p><br></p>`);
-      r.readAsDataURL(f);
+      try{
+        const dataUrl = await compressImage(f);
+        insertHTML(`<img src="${dataUrl}"><p><br></p>`);
+      }catch(e){ toast('No se pudo procesar la imagen'); }
     };
     openModal(`<h3>🖼 Insertar imagen</h3>
       <label class="field"><span>URL de imagen</span><input data-u placeholder="https://..." autofocus></label>
@@ -1394,9 +1740,8 @@ function createEditor(value, onChange){
         if(it.type.indexOf('image') === 0){
           e.preventDefault();
           const f = it.getAsFile();
-          const r = new FileReader();
-          r.onload = ()=> insertHTML(`<img src="${r.result}"><p><br></p>`);
-          r.readAsDataURL(f);
+          compressImage(f).then(dataUrl => insertHTML(`<img src="${dataUrl}"><p><br></p>`))
+            .catch(()=> toast('No se pudo procesar la imagen'));
           return;
         }
       }
@@ -1444,6 +1789,100 @@ function indexEntities(){
   (P.heightGroups||[]).forEach(h=>list.push({id:h.id, type:'heightGroup', name:h.name||'Grupo sin nombre'}));
   (function walk(arr){ (arr||[]).forEach(z=>{ list.push({id:z.id, type:'zone', name:z.name||'Zona sin nombre'}); walk(z.children); }); })(P.world);
   return list;
+}
+
+function findBacklinks(targetId){
+  const refs = [];
+  if(!P || !targetId) return refs;
+  const seen = new Set();
+  const push = (type, id, name, via) => {
+    const k = type + ':' + id;
+    if(seen.has(k)) return;
+    seen.add(k);
+    refs.push({ type, id, name, via });
+  };
+  (P.story.chapters||[]).forEach(c=>{
+    if((c.characterIds||[]).includes(targetId)) push('chapter', c.id, c.title||'Capítulo sin título', 'personaje en');
+    if((c.eventIds||[]).includes(targetId)) push('chapter', c.id, c.title||'Capítulo sin título', 'evento en');
+  });
+  (P.story.events||[]).forEach(e=>{
+    if((e.characterIds||[]).includes(targetId)) push('event', e.id, e.title||'Evento sin título', 'implicado en');
+  });
+  (P.story.timelines||[]).forEach(tl=>{
+    (tl.hitos||[]).forEach(h=>{
+      if(h.eventId === targetId) push('timeline', tl.id, (h.title||'Hito') + ' — ' + (tl.name||'Cronología'), 'hito');
+    });
+  });
+  (function walk(arr){
+    (arr||[]).forEach(z=>{
+      if((z.characterIds||[]).includes(targetId)) push('zone', z.id, z.name||'Zona sin nombre', 'habita');
+      (z.links||[]).forEach(l=>{ if(l.targetId === targetId) push('zone', z.id, z.name||'Zona sin nombre', 'enlazado'); });
+      walk(z.children);
+    });
+  })(P.world);
+  (P.charnets||[]).forEach(net=>{
+    if((net.members||[]).includes(targetId)) push('charnet', net.id, net.name||'Red sin nombre', 'miembro');
+  });
+  (P.genealogies||[]).forEach(g=>{
+    if((g.members||[]).includes(targetId)) push('genealogy', g.id, g.name||'Genealogía sin nombre', 'miembro');
+  });
+  (P.heightGroups||[]).forEach(h=>{
+    if((h.members||[]).includes(targetId)) push('heightGroup', h.id, h.name||'Grupo sin nombre', 'miembro');
+  });
+  const searchInHtml = (html, sourceType, sourceId, sourceName)=>{
+    if(!html) return;
+    if(html.indexOf(`data-internal="${targetId}"`) !== -1 ||
+       html.indexOf(`data-internal='${targetId}'`) !== -1){
+      push(sourceType, sourceId, sourceName, 'mencionado en');
+    }
+  };
+  (P.story.acts||[]).forEach(a=>searchInHtml(a.description,'act',a.id,a.name||'Acto sin título'));
+  (P.story.chapters||[]).forEach(c=>searchInHtml(c.content,'chapter',c.id,c.title||'Capítulo sin título'));
+  (P.story.events||[]).forEach(e=>searchInHtml(e.content,'event',e.id,e.title||'Evento sin título'));
+  (P.story.ideas||[]).forEach(i=>searchInHtml(i.content,'idea',i.id,i.title||'Idea sin título'));
+  (P.story.timelines||[]).forEach(t=>searchInHtml(t.description,'timeline',t.id,t.name||'Cronología sin nombre'));
+  (P.notes||[]).forEach(n=>searchInHtml(n.content,'note',n.id,n.title||'Nota sin título'));
+  (P.characters||[]).forEach(c=>{
+    searchInHtml(c.history,'character',c.id,c.name||'Personaje sin nombre');
+    (c.sections||[]).forEach(s=>searchInHtml(s.content,'character',c.id,c.name||'Personaje sin nombre'));
+  });
+  (P.bestiary||[]).forEach(b=>{
+    (b.sections||[]).forEach(s=>searchInHtml(s.content,'bestiary',b.id,b.name||'Bestia sin nombre'));
+  });
+  (P.races||[]).forEach(r=>{
+    (r.sections||[]).forEach(s=>searchInHtml(s.content,'race',r.id,r.name||'Raza sin nombre'));
+  });
+  (P.lore||[]).forEach(l=>{
+    (l.sections||[]).forEach(s=>searchInHtml(s.content,'lore',l.id,l.name||'Lore sin nombre'));
+  });
+  (function walkZones(arr){
+    (arr||[]).forEach(z=>{
+      searchInHtml(z.desc,'zone',z.id,z.name||'Zona sin nombre');
+      walkZones(z.children);
+    });
+  })(P.world);
+  return refs;
+}
+function renderBacklinks(targetId){
+  const refs = findBacklinks(targetId);
+  const box = make('<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line)"></div>');
+  box.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">🔗 Mencionado en</h3>'));
+  if(!refs.length){
+    box.appendChild(make('<div class="empty" style="padding:6px">Aún no se menciona en ningún sitio.</div>'));
+    return box;
+  }
+  const list = make('<div class="backlinks-list"></div>');
+  refs.forEach(r=>{
+    const row = make(`<div class="backlink-row">
+      <span class="bl-icon">${ICON[r.type]||'•'}</span>
+      <span class="bl-name">${esc(r.name)}</span>
+      <span class="bl-via">${esc(r.via)}</span>
+    </div>`);
+    row.onclick = ()=>goTo(r.id);
+    list.appendChild(row);
+  });
+  box.appendChild(list);
+  return box;
 }
 
 function goTo(id){
@@ -1535,7 +1974,6 @@ function closeSidebarMobile(){ $('#sidebar').classList.remove('open'); $('#sideb
 $('#btnHamb').onclick = ()=> $('#sidebar').classList.contains('open') ? closeSidebarMobile() : openSidebarMobile();
 $('#sidebarOverlay').onclick = closeSidebarMobile;
 
-/* --- Ocultar/mostrar barra lateral (escritorio) --- */
 const SIDEBAR_HIDDEN_KEY = 'codex_sidebar_hidden';
 if(localStorage.getItem(SIDEBAR_HIDDEN_KEY) === '1') document.body.classList.add('sidebar-hidden');
 $('#btnCollapseSidebar').onclick = ()=>{
@@ -1552,7 +1990,7 @@ document.addEventListener('keydown', e=>{
 document.addEventListener('keydown', e=>{
   const k = e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey) && k==='k'){ e.preventDefault(); openCmdk(); return; }
-  if((e.ctrlKey||e.metaKey) && k==='s'){ e.preventDefault(); if(P) $('#btnExport').click(); return; }
+  if((e.ctrlKey||e.metaKey) && k==='s'){ e.preventDefault(); if(P){ saveDB(); toast('Guardado ✓'); } return; }
   if(e.key==='Escape'){
     const fs = document.querySelector('.editor.editor-fullscreen');
     if(fs){ fs.classList.remove('editor-fullscreen'); const btn = fs.querySelector('[data-fullscreen]'); if(btn){ btn.textContent='⛶'; } document.body.style.overflow=''; return; }
@@ -1563,36 +2001,11 @@ document.addEventListener('keydown', e=>{
 });
 
 /* ============================================================
-   7. HELPERS DE UI
+   7. HELPERS
 ============================================================ */
 function fieldInput(label, value, onInput, ph){
   const w = make(`<label class="field"><span>${esc(label)}</span><input value="${esc(value||'')}" placeholder="${esc(ph||'')}"></label>`);
   w.querySelector('input').addEventListener('input', e => onInput(e.target.value));
-  return w;
-}
-function selectInput(label, value, options, onSelect, customLabel){
-  const w = make(`<label class="field"><span>${esc(label)}</span><select></select></label>`);
-  const s = w.querySelector('select');
-  const oNone = document.createElement('option'); oNone.value=''; oNone.textContent='— Sin definir —'; s.appendChild(oNone);
-  options.forEach(o=>{ const op = document.createElement('option'); op.value = o; op.textContent = o; s.appendChild(op); });
-  const oCustom = document.createElement('option'); oCustom.value = '__custom__'; oCustom.textContent = customLabel||'+ Otro…'; s.appendChild(oCustom);
-  s.value = value || '';
-  if(value && !options.includes(value)){ s.value = value; /* custom stored */ 
-    // Reemplazar el option "custom" por el valor para que se vea
-    oCustom.value = value; oCustom.textContent = value;
-  }
-  s.onchange = ()=>{
-    if(s.value === '__custom__' || s.value === value && !options.includes(value)){
-      // ya es un custom
-    }
-    if(s.value === '__custom__'){
-      pedir('Otro valor', [{key:'v', label:'Escribe el valor', value:''}]).then(r=>{
-        if(r && r.v.trim()){ onSelect(r.v.trim()); }
-      });
-      return;
-    }
-    onSelect(s.value);
-  };
   return w;
 }
 function titleRow(value, onInput, actions, ph){
@@ -1628,11 +2041,12 @@ function imagePicker(current, onChange){
     else { prev.style.backgroundImage=''; prev.textContent='Sin imagen'; }
   };
   paint(current);
-  inp.onchange = ()=>{
+  inp.onchange = async ()=>{
     const f = inp.files[0]; if(!f) return;
-    const r = new FileReader();
-    r.onload = ()=>{ paint(r.result); onChange(r.result); };
-    r.readAsDataURL(f);
+    try{
+      const dataUrl = await compressImage(f);
+      paint(dataUrl); onChange(dataUrl);
+    }catch(e){ toast('No se pudo procesar la imagen'); }
   };
   w.querySelector('[data-up]').onclick = ()=> inp.click();
   w.querySelector('[data-url]').onclick = ()=>{
@@ -1673,9 +2087,15 @@ function applyFilter(arr, q, keyFns){
   const s = q.toLowerCase();
   return arr.filter(x => keyFns.some(fn => (fn(x)||'').toLowerCase().includes(s)));
 }
+function moveInArray(arr, from, dir){
+  const to = from + dir;
+  if(to < 0 || to >= arr.length) return false;
+  [arr[from], arr[to]] = [arr[to], arr[from]];
+  return true;
+}
 
 /* ============================================================
-   LIGHTBOX (imágenes a pantalla completa)
+   LIGHTBOX
 ============================================================ */
 const Lightbox = { scale:1, x:0, y:0, natW:1, natH:1, dragging:false };
 function openLightbox(src){
@@ -1782,7 +2202,6 @@ function applyLightbox(){
   zout.onclick = ()=> zoomAround(window.innerWidth/2, window.innerHeight/2, 1/1.25);
   zrst.onclick = ()=>{ openLightbox(img.src); };
 
-  /* Doble clic en cualquier imagen del documento */
   document.addEventListener('dblclick', e=>{
     const imgEl = e.target.closest('img');
     if(imgEl && imgEl.src && !imgEl.closest('.lightbox-back') && !imgEl.closest('.editor-area [data-nozoom]')){
@@ -1798,7 +2217,6 @@ function applyLightbox(){
     }
   });
 
-  /* ESC cierra el lightbox y el editor a pantalla completa */
   document.addEventListener('keydown', e=>{
     if(e.key === 'Escape' && $('#lightboxBack').classList.contains('show')){
       e.stopPropagation();
@@ -1808,14 +2226,10 @@ function applyLightbox(){
 })();
 
 /* ============================================================
-   ESTADÍSTICAS (bloques configurables con barras o telaraña)
+   ESTADÍSTICAS
 ============================================================ */
-function newStatsBlock(){
-  return { id: uid(), title:'Estadísticas', type:'bar', collapsed:false, entries: [] };
-}
-function newStatEntry(){
-  return { id: uid(), label:'', value:5, max:10, color:'#c9a227' };
-}
+function newStatsBlock(){ return { id: uid(), title:'Estadísticas', type:'bar', collapsed:false, entries: [] }; }
+function newStatEntry(){ return { id: uid(), label:'', value:5, max:10, color:'#c9a227' }; }
 function renderStatsChart(blk){
   if(blk.type === 'spider') return renderStatsSpider(blk);
   return renderStatsBars(blk);
@@ -1846,7 +2260,7 @@ function renderStatsSpider(blk){
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
   svg.setAttribute('class', 'stat-chart-spider');
-  svg.style.width = size+'px'; svg.style.height = size+'px';
+  svg.style.width = '100%'; svg.style.maxWidth = size+'px'; svg.style.height = 'auto';
   for(let r=1; r<=5; r++){
     const rr = (radius * r) / 5;
     const pts = [];
@@ -1918,7 +2332,7 @@ function makeStatsUI(item, onChange){
         <div class="dyn-section-head">
           <span class="caret">${blk.collapsed?'▶':'▼'}</span>
           <input class="dyn-title" value="${esc(blk.title||'Estadísticas')}" placeholder="Título">
-          <select data-type style="width:auto;padding:3px 6px;font-size:11.5px">
+          <select data-type style="width:auto;padding:4px 6px;font-size:12px">
             <option value="bar" ${blk.type==='bar'?'selected':''}>📊 Barras</option>
             <option value="spider" ${blk.type==='spider'?'selected':''}>🕸 Telaraña</option>
           </select>
@@ -1935,18 +2349,16 @@ function makeStatsUI(item, onChange){
         if(await confirmar('¿Eliminar este bloque de estadísticas?')){ item.stats.splice(idx, 1); draw(); onChange&&onChange(); }
       };
       if(!blk.collapsed){
-        // Preview del chart
         body.appendChild(renderStatsChart(blk));
-        // Editor de entradas
         const entriesBox = make('<div style="margin-top:12px"></div>');
         function drawEntries(){
           entriesBox.innerHTML = '';
           blk.entries.forEach((en, i)=>{
             const row = make(`<div class="stat-entry-row">
-              <input type="text" data-l value="${esc(en.label||'')}" placeholder="Nombre (Fuerza, Vida...)">
-              <input type="number" data-v value="${en.value}" title="Valor actual">
+              <input type="text" data-l value="${esc(en.label||'')}" placeholder="Nombre">
+              <input type="number" data-v value="${en.value}" title="Actual">
               <span style="color:var(--muted);font-size:12px">/</span>
-              <input type="number" data-m value="${en.max}" title="Valor máximo">
+              <input type="number" data-m value="${en.max}" title="Máx">
               <input type="color" data-c value="${esc(en.color||'#c9a227')}" title="Color">
               <button class="btn small" data-up title="Subir">▲</button>
               <button class="btn small" data-dn title="Bajar">▼</button>
@@ -1974,7 +2386,6 @@ function makeStatsUI(item, onChange){
         const addEntry = make('<button class="btn small" style="margin-top:6px">+ Añadir estadística</button>');
         addEntry.onclick = ()=>{ blk.entries.push(newStatEntry()); draw(); onChange&&onChange(); };
         body.appendChild(addEntry);
-        // Guardamos referencia al preview para redibujar
         previewNode = body.querySelector('.stat-chart-bars, .stat-chart-spider, .stat-empty-hint');
       }
       list.appendChild(div);
@@ -1987,7 +2398,6 @@ function makeStatsUI(item, onChange){
   return wrap;
 }
 
-/* Lista de secciones para el panel de ajustes */
 const SECTION_LIST = [
   { id:'home',       label:'Portada',             group:'Proyecto',  icon:'🏠' },
   { id:'chapters',   label:'Capítulos / Actos',   group:'Historia',  icon:'📜' },
@@ -2025,12 +2435,6 @@ function makeListItem({title, sub, active, thumb, showMove, onUp, onDown, onClic
     el.querySelector('[data-dn]').onclick = (e)=>{ e.stopPropagation(); onDown && onDown(); };
   }
   return el;
-}
-function moveInArray(arr, from, dir){
-  const to = from + dir;
-  if(to < 0 || to >= arr.length) return false;
-  [arr[from], arr[to]] = [arr[to], arr[from]];
-  return true;
 }
 function ensureCharFolders(){ if(!P.charFolders) P.charFolders = []; }
 
@@ -2100,7 +2504,7 @@ function makeDragHandle(handleEl, rowEl, ctx){
 }
 
 /* ============================================================
-   7.2 SECCIONES DINÁMICAS (para Personajes, Bestiario, Razas, Lore)
+   7.2 SECCIONES DINÁMICAS
 ============================================================ */
 function makeSectionsUI(item, onChange){
   const wrap = make('<div></div>');
@@ -2146,7 +2550,6 @@ function makeSectionsUI(item, onChange){
   return wrap;
 }
 
-/* Chips multi-valor (géneros, subgéneros) */
 function makeChipsEditor(values, onChange, placeholderAdd){
   const wrap = make('<div class="genre-chips"></div>');
   function draw(){
@@ -2164,7 +2567,6 @@ function makeChipsEditor(values, onChange, placeholderAdd){
   return wrap;
 }
 function modalChipsAdd(values, redraw, onChange){
-  const allOptions = [];
   openModal(`<h3>+ Añadir</h3>
     <label class="field"><span>Escribe uno nuevo o elige de la lista</span>
       <input data-n placeholder="Escribe aquí..." autofocus></label>
@@ -2205,8 +2607,6 @@ function modalChipsAdd(values, redraw, onChange){
 /* ============================================================
    8. VISTAS
 ============================================================ */
-
-/* ==== 8.1 Biblioteca ==== */
 function viewLibrary(){
   const w = make(`<div class="page">
     <div class="page-head">
@@ -2266,7 +2666,6 @@ function crearProyecto(){
   });
 }
 
-/* ==== 8.2 Portada ==== */
 function viewHome(){
   const w = make(`<div class="page">
     <div class="page-head"><h1>Portada del Proyecto</h1></div>
@@ -2290,11 +2689,11 @@ function viewHome(){
 
   const cover = w.querySelector('[data-cover]');
   cover.appendChild(titleRow(P.name, v=>{ P.name = v; touch(); renderSidebar(); $('#topProjName').textContent = v || 'Sin nombre'; },
-    [{label:'⧉ Duplicar proyecto', onClick:()=>{
+    [{label:'⧉ Duplicar', onClick:()=>{
         const c = dupeItem(P); c.name = P.name + ' (copia)'; migrateProject(c);
         DB.projects.push(c); saveDB(); toast('Proyecto duplicado ✓');
       }},
-     {label:'🗑 Borrar proyecto', cls:'danger', onClick: async ()=>{
+     {label:'🗑 Borrar', cls:'danger', onClick: async ()=>{
         if(await pedirBorrado(P.name)){
           DB.projects = DB.projects.filter(x=>x.id!==P.id);
           DB.currentId = DB.projects[0] ? DB.projects[0].id : null;
@@ -2309,22 +2708,26 @@ function viewHome(){
   w.querySelector('[data-subgenres]').appendChild(makeChipsEditor(P.subgenres, null, 'Subgénero'));
 
   const stats = w.querySelector('[data-stats]');
+  const wcCard = make(`<div class="stat" style="grid-column:1/-1"><b>${projectWordCount().toLocaleString('es')}</b><span>Palabras totales</span></div>`);
+  wcCard.onclick = ()=>{ view='notes'; render(); };
+  stats.appendChild(wcCard);
+
   const totalHitos = (P.story.timelines||[]).reduce((n,tl)=> n + ((tl.hitos||[]).length), 0);
   const cnt = [
-    ['Actos / Temporadas', (P.story.acts||[]).length, 'chapters'],
-    ['Capítulos',          (P.story.chapters||[]).length, 'chapters'],
-    ['Eventos',            (P.story.events||[]).length, 'events'],
-    ['Cronologías',        (P.story.timelines||[]).length, 'timeline'],
-    ['Hitos',              totalHitos, 'timeline'],
-    ['Ideas',              (P.story.ideas||[]).length, 'ideas'],
-    ['Personajes',         (P.characters||[]).length, 'characters'],
-    ['Redes',              (P.charnets||[]).length, 'charnet'],
-    ['Genealogías',        (P.genealogies||[]).length, 'genealogy'],
-    ['Bestiario',          (P.bestiary||[]).length, 'bestiary'],
-    ['Razas',              (P.races||[]).length, 'races'],
-    ['Lore',               (P.lore||[]).length, 'lore'],
-    ['Zonas',              countZones(P.world), 'world'],
-    ['Notas',              (P.notes||[]).length, 'notes']
+    ['Actos',       (P.story.acts||[]).length, 'chapters'],
+    ['Capítulos',   (P.story.chapters||[]).length, 'chapters'],
+    ['Eventos',     (P.story.events||[]).length, 'events'],
+    ['Cronologías', (P.story.timelines||[]).length, 'timeline'],
+    ['Hitos',       totalHitos, 'timeline'],
+    ['Ideas',       (P.story.ideas||[]).length, 'ideas'],
+    ['Personajes',  (P.characters||[]).length, 'characters'],
+    ['Redes',       (P.charnets||[]).length, 'charnet'],
+    ['Genealogías', (P.genealogies||[]).length, 'genealogy'],
+    ['Bestiario',   (P.bestiary||[]).length, 'bestiary'],
+    ['Razas',       (P.races||[]).length, 'races'],
+    ['Lore',        (P.lore||[]).length, 'lore'],
+    ['Zonas',       countZones(P.world), 'world'],
+    ['Notas',       (P.notes||[]).length, 'notes']
   ];
   cnt.forEach(([l,n,vw])=>{
     if(!isSectionVisible(vw)) return;
@@ -2340,13 +2743,11 @@ function viewHome(){
 }
 function countZones(arr){ let n=0; (arr||[]).forEach(z=>{ n += 1 + countZones(z.children); }); return n; }
 
-/* ==== 8.3 Capítulos + Actos ==== */
+/* ==== 8.3 Capítulos ==== */
 function viewChapters(){
   if(!P.story.acts) P.story.acts = [];
   if(!ui.chapters.sel) ui.chapters.sel = [];
-  if(!ui.acts) ui.acts = { q:'', sort:'custom' };
 
-  // Layout: dos paneles anidados: izquierda lista de Actos, centro lista de Capítulos, derecha detalle
   const wrap = make(`<div class="split" style="gap:18px">
     <div class="pane-list" style="width:210px;flex:0 0 210px">
       <div class="pane-head">
@@ -2395,8 +2796,7 @@ function viewChapters(){
         <span class="li-title">🎬 ${esc(a.name||'Acto sin título')}</span>
         <span class="li-sub">${cnt} capítulo${cnt===1?'':'s'}</span>
         <div class="li-move">
-          <button data-up title="Subir">▲</button>
-          <button data-dn title="Bajar">▼</button>
+          <button data-up>▲</button><button data-dn>▼</button>
         </div>
       </div>`);
       it.onclick = (e)=>{ if(e.target.closest('.li-move')) return; sel.acts = a.id; drawActs(); drawList(); drawDetail(); };
@@ -2418,9 +2818,10 @@ function viewChapters(){
     if(!arr.length){ list.innerHTML = '<div class="empty">Sin capítulos en esta vista.</div>'; return; }
     arr.forEach(c=>{
       const idx = P.story.chapters.indexOf(c);
+      const words = countWords(c.content);
       list.appendChild(makeListItem({
         title: c.title || 'Capítulo sin título',
-        sub: c.season || 'Sin temporada',
+        sub: (c.season || 'Sin temporada') + ' · ' + words.toLocaleString('es') + ' pal.',
         active: c.id === sel.chapters,
         showMove,
         onUp: ()=>{ if(moveInArray(P.story.chapters, idx, -1)){ touch(); drawList(); } },
@@ -2432,8 +2833,6 @@ function viewChapters(){
 
   function drawDetail(){
     detail.innerHTML = '';
-
-    // Si hay un acto seleccionado y ningún capítulo seleccionado, mostramos detalle del acto
     let c = P.story.chapters.find(x => x.id === sel.chapters);
     if(!c && P.story.chapters.length && !sel.acts){ c = P.story.chapters[0]; sel.chapters = c.id; }
     if(!c && sel.acts) { drawActDetail(); return; }
@@ -2455,7 +2854,6 @@ function viewChapters(){
         }}
     ], 'Título del capítulo'));
 
-    // Acto (antes carpeta)
     const actWrap = make(`<label class="field"><span>Acto / Temporada</span>
       <select>
         <option value="">— Sin asignar —</option>
@@ -2470,22 +2868,21 @@ function viewChapters(){
     dates.appendChild(fieldInput('Fin', c.end, v=>{ c.end = v; touch(); }, '15/02/2024'));
     box.appendChild(dates);
 
-    // Personajes que aparecen
     const charsBox = make('<div style="margin:12px 0"></div>');
-    charsBox.appendChild(make('<div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:6px">Personajes que aparecen</h6>'));
+    charsBox.appendChild(make('<div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:6px">Personajes que aparecen</div>'));
     const chipsBox = make('<div class="chips"></div>');
     function drawChars(){
       chipsBox.innerHTML = '';
       (c.characterIds||[]).forEach((id, i)=>{
         const ch = P.characters.find(x=>x.id===id);
         if(!ch) return;
-        const chip = make(`<span class="chip">🧝 ${esc(ch.name||'Sin nombre')}<span class="x" title="Quitar">✕</span></span>`);
+        const chip = make(`<span class="chip">🧝 ${esc(ch.name||'Sin nombre')}<span class="x">✕</span></span>`);
         chip.querySelector('.x').onclick = ()=>{ c.characterIds.splice(i,1); touch(); drawChars(); };
         chip.onclick = (e)=>{ if(e.target.classList.contains('x')) return; goTo(ch.id); };
         chip.style.cursor = 'pointer';
         chipsBox.appendChild(chip);
       });
-      const addChip = make(`<span class="chip chip-add" title="Añadir personaje">+ Añadir</span>`);
+      const addChip = make(`<span class="chip chip-add">+ Añadir</span>`);
       addChip.onclick = ()=> pickCharactersModal(c.characterIds, drawChars, touch);
       chipsBox.appendChild(addChip);
     }
@@ -2493,7 +2890,6 @@ function viewChapters(){
     charsBox.appendChild(chipsBox);
     box.appendChild(charsBox);
 
-    // Eventos importantes
     const evBox = make('<div style="margin:12px 0"></div>');
     evBox.appendChild(make('<div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:6px">Eventos importantes</div>'));
     const evChips = make('<div class="chips"></div>');
@@ -2502,7 +2898,7 @@ function viewChapters(){
       (c.eventIds||[]).forEach((id, i)=>{
         const ev = P.story.events.find(x=>x.id===id);
         if(!ev) return;
-        const chip = make(`<span class="chip">⚡ ${esc(ev.title||'Sin título')}<span class="x" title="Quitar">✕</span></span>`);
+        const chip = make(`<span class="chip">⚡ ${esc(ev.title||'Sin título')}<span class="x">✕</span></span>`);
         chip.querySelector('.x').onclick = ()=>{ c.eventIds.splice(i,1); touch(); drawEv(); };
         chip.onclick = (e)=>{ if(e.target.classList.contains('x')) return; goTo(ev.id); };
         chip.style.cursor = 'pointer';
@@ -2518,7 +2914,7 @@ function viewChapters(){
 
     box.appendChild(make('<div style="height:8px"></div>'));
     box.appendChild(createEditor(c.content, v=>{ c.content = v; touch(); }));
-
+    box.appendChild(renderBacklinks(c.id));
     detail.appendChild(box);
   }
 
@@ -2557,7 +2953,7 @@ function viewChapters(){
       listBox.appendChild(it);
     });
     box.appendChild(listBox);
-
+    box.appendChild(renderBacklinks(a.id));
     detail.appendChild(box);
   }
 
@@ -2649,7 +3045,7 @@ function pickEventsModal(ids, redraw, onChange){
             else { const i = ids.indexOf(ev.id); if(i>=0) ids.splice(i,1); }
             onChange && onChange();
           };
-          list.appendChild(cb.parentNode);
+          list.appendChild(it);
         });
       };
       draw();
@@ -2711,13 +3107,13 @@ function viewEvents(){
     if(!e){ e = P.story.events[0]; sel.events = e.id; }
     const box = make('<div class="paper"></div>');
     box.appendChild(titleRow(e.title, v=>{ e.title = v; touch(); drawList(); }, [
-      {label:'📋 Copiar', onClick:()=>{ clipboard = {kind:'event', data:deepClone(e)}; toast('Copiado ✓'); }},
-      {label:'⧉ Duplicar', onClick:()=>{
+      {label:'📋', onClick:()=>{ clipboard = {kind:'event', data:deepClone(e)}; toast('Copiado ✓'); }},
+      {label:'⧉', onClick:()=>{
           const d = dupeItem(e); d.title = (e.title||'Evento') + ' (copia)';
           const i = P.story.events.indexOf(e); P.story.events.splice(i+1,0,d);
           sel.events = d.id; touch(); drawList(); drawDetail();
         }},
-      {label:'🗑 Borrar', cls:'danger', onClick: async ()=>{
+      {label:'🗑', cls:'danger', onClick: async ()=>{
           if(await pedirBorrado(e.title||'este evento')){
             P.story.events = P.story.events.filter(x=>x.id!==e.id);
             sel.events = null; touch(); drawList(); drawDetail();
@@ -2725,8 +3121,7 @@ function viewEvents(){
         }}
     ], 'Título del evento'));
 
-    // Tipo
-    const typeWrap = make(`<label class="field"><span>Tipo de evento</span><select></select></label>`);
+    const typeWrap = make(`<label class="field"><span>Tipo</span><select></select></label>`);
     const ts = typeWrap.querySelector('select');
     const oNone = document.createElement('option'); oNone.value=''; oNone.textContent='— Sin definir —'; ts.appendChild(oNone);
     EVENT_TYPES.forEach(t=>{ const o = document.createElement('option'); o.value=t; o.textContent=t; ts.appendChild(o); });
@@ -2735,7 +3130,7 @@ function viewEvents(){
     ts.value = e.type || '';
     ts.onchange = ()=>{
       if(ts.value === '__custom__'){
-        pedir('Otro tipo', [{key:'v', label:'Escribe el tipo', value:'', autofocus:true}]).then(r=>{
+        pedir('Otro tipo', [{key:'v', label:'Escribe', value:'', autofocus:true}]).then(r=>{
           if(r && r.v.trim()){ e.type = r.v.trim(); touch(); drawList(); drawDetail(); }
         });
         return;
@@ -2749,10 +3144,8 @@ function viewEvents(){
     dates.appendChild(fieldInput('Inicio', e.start, v=>{ e.start = v; touch(); }, '01/01/2024'));
     dates.appendChild(fieldInput('Fin', e.end, v=>{ e.end = v; touch(); }, '15/02/2024'));
     box.appendChild(dates);
-
     box.appendChild(imagePicker(e.image, v=>{ e.image = v; touch(); drawList(); }));
 
-    // Personajes implicados
     const charsBox = make('<div style="margin:12px 0"></div>');
     charsBox.appendChild(make('<div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:6px">Personajes implicados</div>'));
     const chipsBox = make('<div class="chips"></div>');
@@ -2761,7 +3154,7 @@ function viewEvents(){
       (e.characterIds||[]).forEach((id, i)=>{
         const ch = P.characters.find(x=>x.id===id);
         if(!ch) return;
-        const chip = make(`<span class="chip">🧝 ${esc(ch.name||'Sin nombre')}<span class="x" title="Quitar">✕</span></span>`);
+        const chip = make(`<span class="chip">🧝 ${esc(ch.name||'Sin nombre')}<span class="x">✕</span></span>`);
         chip.querySelector('.x').onclick = ()=>{ e.characterIds.splice(i,1); touch(); drawChars(); };
         chip.onclick = (ev)=>{ if(ev.target.classList.contains('x')) return; goTo(ch.id); };
         chip.style.cursor = 'pointer';
@@ -2776,6 +3169,7 @@ function viewEvents(){
     box.appendChild(charsBox);
 
     box.appendChild(createEditor(e.content, v=>{ e.content = v; touch(); }));
+    box.appendChild(renderBacklinks(e.id));
     detail.appendChild(box);
   }
 
@@ -2794,7 +3188,7 @@ function viewEvents(){
   return wrap;
 }
 
-/* ---------- 8.5 Cronología ---------- */
+/* ==== 8.5 Cronología ==== */
 function parseTimelineYear(str){
   if(!str) return null;
   const s = String(str);
@@ -2805,7 +3199,6 @@ function parseTimelineYear(str){
   return n;
 }
 
-/* Helpers de calendario */
 const DEFAULT_WEEKDAYS = ['L','M','X','J','V','S','D'];
 function newTimeline(name){
   return {
@@ -2857,7 +3250,6 @@ function calcHitoDuration(h, cal){
   return Math.max(1, (yDiff - 1) * daysPerYear + (daysPerYear - dayOfYear(s) + 1) + dayOfYear(e));
 }
 
-/* UI de configuración del calendario (colapsable) */
 function buildCalendarConfigUI(T, redraw){
   const cal = T.calendar;
   const box = make(`<div class="cal-editor">
@@ -2866,11 +3258,11 @@ function buildCalendarConfigUI(T, redraw){
     </h4>
     <div data-body>
       <div class="grid2" style="margin-bottom:8px">
-        <label class="field"><span>Nombre del año</span><input data-yearlabel value="${esc(cal.yearLabel||'Año')}" placeholder="Año, Ciclo, Era..."></label>
-        <label class="field"><span>Días por defecto al mes</span><input data-days type="number" min="1" value="${cal.daysPerMonth||30}"></label>
+        <label class="field"><span>Nombre del año</span><input data-yearlabel value="${esc(cal.yearLabel||'Año')}"></label>
+        <label class="field"><span>Días por mes</span><input data-days type="number" min="1" value="${cal.daysPerMonth||30}"></label>
       </div>
       <label class="field"><span>Días de la semana (separados por coma)</span>
-        <input data-weekdays value="${esc((cal.weekdays||DEFAULT_WEEKDAYS).join(','))}" placeholder="Lun,Mar,Mié,Jue,Vie,Sáb,Dom">
+        <input data-weekdays value="${esc((cal.weekdays||DEFAULT_WEEKDAYS).join(','))}">
       </label>
       <div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin:10px 0 6px">Meses / divisiones</div>
       <div data-months></div>
@@ -2878,7 +3270,7 @@ function buildCalendarConfigUI(T, redraw){
         <button class="btn small" data-addmonth>+ Añadir mes</button>
         <button class="btn small" data-gen12>Generar 12 meses</button>
       </div>
-      <p class="hint" style="margin:8px 0 0">Cada mes puede tener días distintos. Haz clic en cualquier casilla del calendario para crear un hito en ese día.</p>
+      <p class="hint" style="margin:8px 0 0">Cada mes puede tener días distintos. Toca una casilla del calendario para crear un hito.</p>
     </div>
   </div>`);
   const head = box.querySelector('h4');
@@ -2908,14 +3300,14 @@ function buildCalendarConfigUI(T, redraw){
   const monthsBox = box.querySelector('[data-months]');
   function drawMonths(){
     monthsBox.innerHTML = '';
-    if(!cal.months.length) monthsBox.innerHTML = '<div class="hint" style="margin:0">Sin meses. Usa "Generar 12 meses" o añade uno manualmente.</div>';
+    if(!cal.months.length) monthsBox.innerHTML = '<div class="hint" style="margin:0">Sin meses. Usa "Generar 12 meses" o añade uno.</div>';
     cal.months.forEach((m, i)=>{
       const row = make(`<div class="cal-row">
         <input data-n value="${esc(m.name||'')}" placeholder="Nombre del mes">
         <input data-d type="number" min="1" value="${m.days||cal.daysPerMonth||30}" style="max-width:80px" title="Días">
-        <button class="btn small" data-up title="Subir">▲</button>
-        <button class="btn small" data-dn title="Bajar">▼</button>
-        <button class="btn small danger" data-x title="Eliminar">✕</button>
+        <button class="btn small" data-up>▲</button>
+        <button class="btn small" data-dn>▼</button>
+        <button class="btn small danger" data-x>✕</button>
       </div>`);
       row.querySelector('[data-n]').oninput = e => { m.name = e.target.value; touch(); };
       row.querySelector('[data-d]').oninput = e => { m.days = Math.max(1, parseInt(e.target.value)||cal.daysPerMonth||30); touch(); };
@@ -2932,7 +3324,6 @@ function buildCalendarConfigUI(T, redraw){
   };
   box.querySelector('[data-gen12]').onclick = ()=>{
     const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    if(cal.months.length && !confirm('Ya hay meses. ¿Añadir 12 más igualmente?')) return;
     months.forEach(n => cal.months.push({ name:n, days: cal.daysPerMonth||30 }));
     touch(); drawMonths(); redraw&&redraw();
     toast('12 meses añadidos ✓');
@@ -2954,7 +3345,7 @@ function viewTimeline(){
       <div class="pane-head">
         <h3>Cronologías</h3>
         <div class="pane-actions">
-          <button class="btn small primary" data-new title="Nueva cronología">+</button>
+          <button class="btn small primary" data-new>+</button>
         </div>
       </div>
       <div class="list" data-list></div>
@@ -2982,14 +3373,14 @@ function viewTimeline(){
     ensureTimeline(T);
     const box = make('<div class="paper"></div>');
     box.appendChild(titleRow(T.name, v => { T.name = v; touch(); drawList(); }, [
-      {label:'📋 Copiar', onClick:()=>{ clipboard = {kind:'timeline', data:deepClone(T)}; toast('Copiado ✓'); }},
-      {label:'⧉ Duplicar', onClick:()=>{
+      {label:'📋', onClick:()=>{ clipboard = {kind:'timeline', data:deepClone(T)}; toast('Copiado ✓'); }},
+      {label:'⧉', onClick:()=>{
         const d = dupeItem(T); d.name = (T.name || 'Cronología') + ' (copia)';
         P.story.timelines.push(d); ui.timeline.sel = d.id; T = d;
         ensureTimeline(T); touch(); drawList(); drawDetail();
       }},
-      {label:'🗑 Borrar', cls:'danger', onClick: async ()=>{
-        if(P.story.timelines.length === 1){ toast('Debe quedar al menos una cronología'); return; }
+      {label:'🗑', cls:'danger', onClick: async ()=>{
+        if(P.story.timelines.length === 1){ toast('Debe quedar al menos una'); return; }
         if(await pedirBorrado(T.name || 'esta cronología')){
           P.story.timelines = P.story.timelines.filter(x => x.id !== T.id);
           T = P.story.timelines[0]; ensureTimeline(T);
@@ -2998,29 +3389,24 @@ function viewTimeline(){
       }}
     ], 'Nombre de la cronología'));
 
-    // Descripción
     const descWrap = make('<div style="margin-bottom:12px"></div>');
     descWrap.appendChild(createEditor(T.description, v=>{ T.description = v; touch(); }));
     box.appendChild(descWrap);
 
-    // Cuerpo (donde vive cada vista)
     const body = make('<div data-body></div>');
-
-    // Configuración del calendario
     box.appendChild(buildCalendarConfigUI(T, ()=>{ if(T.view.mode==='calendar') drawBody(); }));
 
-    // Toolbar de vistas
     const modes = [
       { id:'vertical',   label:'↕ Vertical' },
       { id:'horizontal', label:'↔ Horizontal' },
       { id:'calendar',   label:'📅 Calendario' }
     ];
     const toolbar = make(`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:14px 0">
-      <div style="display:inline-flex;gap:4px" data-modes>
+      <div style="display:inline-flex;gap:4px;flex-wrap:wrap" data-modes>
         ${modes.map(m => `<button class="btn small ${T.view.mode===m.id?'primary':''}" data-mode="${m.id}">${m.label}</button>`).join('')}
       </div>
       <span data-zoom></span>
-      <button class="btn small" data-sort>⇅ Ordenar por fecha</button>
+      <button class="btn small" data-sort>⇅ Ordenar</button>
       <button class="btn small primary" data-newhito>+ Hito</button>
       <div style="flex:1;min-width:150px">
         <input class="pt-search" placeholder="🔍 Buscar hito..." style="width:100%">
@@ -3028,6 +3414,7 @@ function viewTimeline(){
     </div>`);
     box.appendChild(toolbar);
     box.appendChild(body);
+    box.appendChild(renderBacklinks(T.id));
     detail.appendChild(box);
 
     const zoomSpan = toolbar.querySelector('[data-zoom]');
@@ -3040,15 +3427,13 @@ function viewTimeline(){
     });
     toolbar.querySelector('[data-sort]').onclick = ()=>{
       T.hitos.sort((a,b)=> String(a.date||'').localeCompare(String(b.date||''),'es',{numeric:true}));
-      touch(); drawBody(); toast('Ordenado por fecha');
+      touch(); drawBody(); toast('Ordenado');
     };
     toolbar.querySelector('[data-newhito]').onclick = ()=>{
       const h = newHito();
       T.hitos.push(h);
       touch();
-      if(T.view.mode === 'calendar'){
-        h.calStart = { y: T.calendar.currentYear||1, m: 0, d: 1 };
-      }
+      if(T.view.mode === 'calendar') h.calStart = { y: T.calendar.currentYear||1, m: 0, d: 1 };
       editarHito(h, true);
     };
 
@@ -3056,10 +3441,10 @@ function viewTimeline(){
       zoomSpan.innerHTML = '';
       if(T.view.mode === 'horizontal'){
         const z = make(`<span class="tl-zoom">
-          <button data-zo title="Alejar">➖</button>
+          <button data-zo>➖</button>
           <span class="tl-zoom-val">${Math.round((T.view.zoom||1)*100)}%</span>
-          <button data-zi title="Acercar">➕</button>
-          <button data-zr title="Restablecer">↺</button>
+          <button data-zi>➕</button>
+          <button data-zr>↺</button>
         </span>`);
         z.querySelector('[data-zo]').onclick = ()=>{ T.view.zoom = Math.max(0.25, (T.view.zoom||1)/1.25); touch(); updateZoomCtrl(); drawBody(); };
         z.querySelector('[data-zi]').onclick = ()=>{ T.view.zoom = Math.min(8, (T.view.zoom||1)*1.25); touch(); updateZoomCtrl(); drawBody(); };
@@ -3080,7 +3465,6 @@ function viewTimeline(){
       return make('<div class="empty">' + (T.hitos.length ? 'Sin resultados.' : 'Esta cronología está vacía.') + '</div>');
     }
 
-    /* ---------- Vista vertical ---------- */
     function drawVertical(){
       body.innerHTML = '';
       const arr = getFiltered();
@@ -3130,15 +3514,14 @@ function viewTimeline(){
       if(ui.timeline.highlight) setTimeout(()=>{ ui.timeline.highlight = null; }, 2000);
     }
 
-    /* ---------- Vista horizontal ---------- */
     function makeHCard(t, i){
       const card = make(`<div class="tl-h-card">
         <div class="tl-date">${esc(t.date||'Sin fecha')}</div>
         <div class="tl-title">${esc(t.title||'Hito sin título')}</div>
         ${t.desc ? `<div class="tl-h-desc">${esc(stripHtml(t.desc))}</div>` : ''}
         <div class="tl-h-actions">
-          <button data-dup title="Duplicar">⧉</button>
-          <button data-del title="Borrar" class="danger">✕</button>
+          <button data-dup>⧉</button>
+          <button data-del class="danger">✕</button>
         </div>
       </div>`);
       card.onclick = (e)=>{ if(e.target.closest('.tl-h-actions')) return; editarHito(t); };
@@ -3156,7 +3539,7 @@ function viewTimeline(){
       const parsed = arr.map(t => ({ t, year: parseTimelineYear(t.date) }));
       const validYears = parsed.filter(p => p.year !== null).map(p => p.year);
       if(!validYears.length){
-        body.appendChild(make('<div class="empty">Los hitos no tienen fechas numéricas.<br><small>Usa "342", "342 d.C." o "1500 a.C."</small></div>'));
+        body.appendChild(make('<div class="empty">Los hitos no tienen fechas numéricas.</div>'));
         return;
       }
       const minYear = Math.min(...validYears);
@@ -3209,14 +3592,13 @@ function viewTimeline(){
       body.appendChild(wrapEl);
     }
 
-    /* ---------- Vista calendario ---------- */
     function drawCalendar(){
       body.innerHTML = '';
       const cal = T.calendar;
       const months = cal.months || [];
       if(!months.length){
         body.appendChild(make(`<div class="empty">
-          Configura los meses del calendario arriba para usarlo.<br>
+          Configura los meses del calendario arriba.<br>
           <button class="btn small primary" style="margin-top:10px" data-quickgen>Generar 12 meses</button>
         </div>`));
         const qb = body.querySelector('[data-quickgen]');
@@ -3233,9 +3615,9 @@ function viewTimeline(){
       const daysPerWeek = weekdays.length;
 
       const nav = make(`<div class="cal-nav">
-        <button class="btn small" data-prev>◀ ${esc(cal.yearLabel||'Año')} ${year-1}</button>
+        <button class="btn small" data-prev>◀ ${year-1}</button>
         <span class="cal-year-label">${esc(cal.yearLabel||'Año')} ${year}</span>
-        <button class="btn small" data-next>${esc(cal.yearLabel||'Año')} ${year+1} ▶</button>
+        <button class="btn small" data-next>${year+1} ▶</button>
       </div>`);
       nav.querySelector('[data-prev]').onclick = ()=>{ cal.currentYear = year - 1; touch(); drawCalendar(); };
       nav.querySelector('[data-next]').onclick = ()=>{ cal.currentYear = year + 1; touch(); drawCalendar(); };
@@ -3247,8 +3629,7 @@ function viewTimeline(){
       const hitosWithCal = T.hitos.filter(h => h.calStart);
       const hitosInYear = hitosWithCal.filter(h => {
         const s = h.calStart, e = h.calEnd || s;
-        return s.y === year || e.y === year ||
-               (s.y < year && e.y > year);
+        return s.y === year || e.y === year || (s.y < year && e.y > year);
       });
 
       let cumulativeDays = 0;
@@ -3279,7 +3660,6 @@ function viewTimeline(){
           for(let i=0; i<daysPerWeek - rem; i++) grid.appendChild(make('<div class="cal-cell cal-empty"></div>'));
         }
 
-        // Hitos
         hitosInYear.forEach(h => {
           const s = h.calStart;
           const e = h.calEnd || s;
@@ -3317,7 +3697,6 @@ function viewTimeline(){
           }
         });
 
-        // Clic en celda → nuevo hito
         grid.querySelectorAll('.cal-cell:not(.cal-empty)').forEach(cell => {
           cell.onclick = (ev)=>{
             if(ev.target.closest('.cal-chip')) return;
@@ -3335,14 +3714,11 @@ function viewTimeline(){
       });
     }
 
-    /* ---------- Editor de hito ---------- */
     function editarHito(t, isNew){
       const cal = T.calendar;
       const hasMonths = cal.months && cal.months.length;
       const evOpts = P.story.events.map(e => `<option value="${e.id}" ${t.eventId===e.id?'selected':''}>${esc(e.title||'Sin título')}</option>`).join('');
-      const monthsOpts = hasMonths
-        ? cal.months.map((m,i) => `<option value="${i}">${esc(m.name||('Mes '+(i+1)))}</option>`).join('')
-        : '';
+      const monthsOpts = hasMonths ? cal.months.map((m,i) => `<option value="${i}">${esc(m.name||('Mes '+(i+1)))}</option>`).join('') : '';
       const s = t.calStart || { y: cal.currentYear || 1, m: 0, d: 1 };
       const en = t.calEnd;
 
@@ -3359,7 +3735,7 @@ function viewTimeline(){
           </div>
           <label class="field" style="margin-top:8px;display:flex;align-items:center;gap:8px">
             <input type="checkbox" data-has-end ${en?'checked':''} style="width:auto;margin:0;accent-color:var(--gold)">
-            <span style="margin:0">Añadir fecha de fin (duración)</span>
+            <span style="margin:0">Añadir fecha de fin</span>
           </label>
           <div data-end-fields style="display:${en?'block':'none'}">
             <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:6px">
@@ -3368,7 +3744,7 @@ function viewTimeline(){
               <label class="field" style="margin:0"><span>Día fin</span><input data-ed type="number" min="1" value="${en?en.d:s.d}"></label>
             </div>
           </div>
-          <label class="field" style="margin-top:8px"><span>Color del hito</span><input data-color type="color" value="${t.calColor||'#c9a227'}"></label>
+          <label class="field" style="margin-top:8px"><span>Color</span><input data-color type="color" value="${t.calColor||'#c9a227'}"></label>
         </div>` : ''}
         <label class="field"><span>Descripción</span><textarea data-d>${esc(t.desc||'')}</textarea></label>
         <label class="field"><span>Evento vinculado</span>
@@ -3411,9 +3787,7 @@ function viewTimeline(){
                   m: parseInt(m.querySelector('[data-em]').value) || 0,
                   d: parseInt(m.querySelector('[data-ed]').value) || 1
                 };
-              } else {
-                t.calEnd = null;
-              }
+              } else t.calEnd = null;
             }
             closeModal(); touch(); drawBody();
           };
@@ -3452,7 +3826,7 @@ function viewIdeas(){
         <h3>Ideas</h3>
         <div class="pane-actions">
           <button class="btn small" data-newfolder title="Nueva carpeta">📁+</button>
-          <button class="btn small" data-paste title="Pegar">📥</button>
+          <button class="btn small" data-paste>📥</button>
           <button class="btn small primary" data-new>+</button>
         </div>
       </div>
@@ -3466,7 +3840,6 @@ function viewIdeas(){
   const detail = wrap.querySelector('[data-detail]');
   const toolsBox = wrap.querySelector('[data-tools]');
   const bulkBox = wrap.querySelector('[data-bulk]');
-
   let drawDetailRef = null;
 
   const ctrl = makeFolderedList({
@@ -3498,23 +3871,22 @@ function viewIdeas(){
     if(!it){ it = P.story.ideas[0]; sel.ideas = it.id; }
     const box = make('<div class="paper"></div>');
     box.appendChild(titleRow(it.title, v=>{ it.title = v; touch(); ctrl.drawList(); }, [
-      {label:'📋 Copiar', onClick:()=>{ clipboard = {kind:'idea', data:deepClone(it)}; toast('Copiado ✓'); }},
-      {label:'⧉ Duplicar', onClick:()=>{
+      {label:'📋', onClick:()=>{ clipboard = {kind:'idea', data:deepClone(it)}; toast('Copiado ✓'); }},
+      {label:'⧉', onClick:()=>{
           const d = dupeItem(it); d.title = (it.title||'Idea') + ' (copia)';
           const idx = P.story.ideas.indexOf(it); P.story.ideas.splice(idx+1,0,d);
           sel.ideas = d.id; touch(); ctrl.drawList(); drawDetail();
         }},
-      {label:'🗑 Borrar', cls:'danger', onClick: async ()=>{
+      {label:'🗑', cls:'danger', onClick: async ()=>{
           if(await pedirBorrado(it.title||'esta idea')){
             P.story.ideas = P.story.ideas.filter(x=>x.id!==it.id);
             ui.ideas.sel = ui.ideas.sel.filter(x=>x!==it.id);
             sel.ideas = null; touch(); ctrl.drawList(); drawDetail();
           }
         }}
-    ], 'Título de la idea'));
+    ], 'Título'));
 
-    // Tipo
-    const typeWrap = make(`<label class="field"><span>Tipo de idea</span><select></select></label>`);
+    const typeWrap = make(`<label class="field"><span>Tipo</span><select></select></label>`);
     const ts = typeWrap.querySelector('select');
     const oNone = document.createElement('option'); oNone.value=''; oNone.textContent='— Sin definir —'; ts.appendChild(oNone);
     IDEA_TYPES.forEach(t=>{ const o = document.createElement('option'); o.value=t; o.textContent=t; ts.appendChild(o); });
@@ -3523,7 +3895,7 @@ function viewIdeas(){
     ts.value = it.type || '';
     ts.onchange = ()=>{
       if(ts.value === '__custom__'){
-        pedir('Otro tipo', [{key:'v', label:'Escribe el tipo', value:'', autofocus:true}]).then(r=>{
+        pedir('Otro tipo', [{key:'v', label:'Escribe', value:'', autofocus:true}]).then(r=>{
           if(r && r.v.trim()){ it.type = r.v.trim(); touch(); ctrl.drawList(); drawDetail(); }
         });
         return;
@@ -3532,7 +3904,6 @@ function viewIdeas(){
     };
     box.appendChild(typeWrap);
 
-    // Estado
     const estadoWrap = make(`<label class="field"><span>Estado</span><select></select></label>`);
     const es = estadoWrap.querySelector('select');
     IDEA_STATUS.forEach(e=>{ const o = document.createElement('option'); o.value=e; o.textContent=e; es.appendChild(o); });
@@ -3540,7 +3911,6 @@ function viewIdeas(){
     es.onchange = ()=>{ it.status = es.value; touch(); ctrl.drawList(); };
     box.appendChild(estadoWrap);
 
-    // Carpeta
     const folderWrap = make(`<label class="field"><span>Carpeta</span>
       <select>
         <option value="">— Sin carpeta —</option>
@@ -3548,8 +3918,8 @@ function viewIdeas(){
       </select></label>`);
     folderWrap.querySelector('select').onchange = e=>{ it.folder = e.target.value; touch(); ctrl.drawList(); };
     box.appendChild(folderWrap);
-
     box.appendChild(createEditor(it.content, v=>{ it.content = v; touch(); }));
+    box.appendChild(renderBacklinks(it.id));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
@@ -3568,7 +3938,7 @@ function viewIdeas(){
     const v = await pedir('📁 Nueva carpeta', [{key:'n', label:'Nombre', value:'', autofocus:true}]);
     if(v && v.n.trim()){
       const name = v.n.trim();
-      if(P.story.ideaFolders.includes(name)){ toast('Ya existe esa carpeta'); return; }
+      if(P.story.ideaFolders.includes(name)){ toast('Ya existe'); return; }
       P.story.ideaFolders.push(name); touch(); ctrl.drawList();
     }
   };
@@ -3576,7 +3946,7 @@ function viewIdeas(){
   return wrap;
 }
 
-/* ==== Helper makeFolderedList (compartido) ==== */
+/* ==== Helper makeFolderedList ==== */
 function makeFolderedList(cfg){
   const { listEl, bulkEl, getItems, getFolders, getSel, setSel,
           foldersOpen, renderItemHTML, onSelect, onTouch,
@@ -3639,12 +4009,12 @@ function makeFolderedList(cfg){
     if(!sel.length) return;
     const bar = make(`<div class="char-bulk">
       <span class="info">${sel.length} seleccionado${sel.length>1?'s':''}</span>
-      <select data-folder title="Mover a carpeta...">
+      <select data-folder>
         <option value="__pick__">Mover a →</option>
         <option value="">📂 Sin carpeta</option>
         ${getFolders().map(f=>`<option value="${esc(f)}">📁 ${esc(f)}</option>`).join('')}
       </select>
-      <button class="btn small" data-clear title="Deseleccionar">✕</button>
+      <button class="btn small" data-clear>✕</button>
     </div>`);
     const s = bar.querySelector('[data-folder]');
     s.onchange = ()=>{ if(s.value==='__pick__') return; moveTo(sel, s.value); s.value='__pick__'; };
@@ -3790,9 +4160,9 @@ function viewCharacters(){
       <div class="pane-head">
         <h3>Personajes</h3>
         <div class="pane-actions">
-          <button class="btn small" data-toggle-filters title="Filtros">🔎</button>
-          <button class="btn small" data-newfolder title="Nueva carpeta">📁+</button>
-          <button class="btn small" data-paste title="Pegar">📥</button>
+          <button class="btn small" data-toggle-filters>🔎</button>
+          <button class="btn small" data-newfolder>📁+</button>
+          <button class="btn small" data-paste>📥</button>
           <button class="btn small primary" data-new>+</button>
         </div>
       </div>
@@ -3869,7 +4239,7 @@ function viewCharacters(){
     if(!selIds.length) return;
     const bar = make(`<div class="char-bulk">
       <span class="info">${selIds.length} seleccionado${selIds.length>1?'s':''}</span>
-      <select data-folder title="Mover a carpeta...">
+      <select data-folder>
         <option value="__pick__">Mover a →</option>
         <option value="">📂 Sin carpeta</option>
         ${P.charFolders.map(f=>`<option value="${esc(f)}">📁 ${esc(f)}</option>`).join('')}
@@ -3884,14 +4254,15 @@ function viewCharacters(){
   function makeCharItem(c, showMove){
     const idx = P.characters.indexOf(c);
     const selected = isSelected(c.id);
+    const words = countWords(c.history);
     const el = make(`<div class="list-item has-check ${selected?'selected':''}">
       <input type="checkbox" class="li-check" ${selected?'checked':''}>
       ${c.image ? `<div class="li-thumb" style="background-image:url('${esc(c.image)}')"></div>` : ''}
       <span class="li-title">${esc(c.name||'Personaje sin nombre')}${c.nickname?` <small style="color:var(--muted);font-style:italic">«${esc(c.nickname)}»</small>`:''}</span>
-      <span class="li-sub">${esc([c.roll, c.storyRole].filter(Boolean).join(' · ') || stripHtml(c.short).slice(0,50) || 'Sin descripción')}</span>
+      <span class="li-sub">${esc([c.roll, c.storyRole].filter(Boolean).join(' · ') || stripHtml(c.short).slice(0,50) || 'Sin descripción')}${words?` · ${words} pal.`:''}</span>
       <div class="li-move">
         ${showMove ? '<button class="li-drag" data-drag>⠿</button><button data-up>▲</button><button data-dn>▼</button>' : ''}
-        <button class="folder-btn" data-folder title="Mover a carpeta">📁</button>
+        <button class="folder-btn" data-folder>📁</button>
       </div>
     </div>`);
     el.dataset.id = c.id;
@@ -4038,14 +4409,14 @@ function viewCharacters(){
 
     const box = make('<div class="paper"></div>');
     box.appendChild(titleRow(c.name, v=>{ c.name = v; touch(); drawList(); }, [
-      {label:'📖 Historia', title:'Ir a la historia de este personaje', onClick:()=>{ view='charhist'; ui.charhist.sel = c.id; render(); }},
-      {label:'📋', title:'Copiar', onClick:()=>{ clipboard = {kind:'character', data:deepClone(c)}; toast('Copiado ✓'); }},
-      {label:'⧉', title:'Duplicar', onClick:()=>{
+      {label:'📖 Historia', onClick:()=>{ view='charhist'; ui.charhist.sel = c.id; render(); }},
+      {label:'📋', onClick:()=>{ clipboard = {kind:'character', data:deepClone(c)}; toast('Copiado ✓'); }},
+      {label:'⧉', onClick:()=>{
           const d = dupeItem(c); d.name = (c.name||'Personaje') + ' (copia)';
           const i = P.characters.indexOf(c); P.characters.splice(i+1,0,d);
           sel.characters = d.id; touch(); drawList(); drawDetail();
         }},
-      {label:'🗑', title:'Borrar', cls:'danger', onClick: async ()=>{
+      {label:'🗑', cls:'danger', onClick: async ()=>{
           if(await pedirBorrado(c.name||'este personaje')){
             P.characters = P.characters.filter(x=>x.id!==c.id);
             (P.charnets||[]).forEach(net=>{
@@ -4066,7 +4437,6 @@ function viewCharacters(){
 
     box.appendChild(imagePicker(c.image, v=>{ c.image = v; touch(); drawList(); }));
 
-    // Apodo
     const nickRow = make('<div class="grid2"></div>');
     nickRow.appendChild(fieldInput('Apodo', c.nickname, v=>{ c.nickname = v; touch(); drawList(); }, 'Ej: El Errante'));
     const folderWrap = make(`<label class="field"><span>Carpeta</span>
@@ -4078,9 +4448,8 @@ function viewCharacters(){
     nickRow.appendChild(folderWrap);
     box.appendChild(nickRow);
 
-    // Edad, Género, Altura, Peso
     const datos = make('<div class="grid2"></div>');
-    datos.appendChild(fieldInput('Edad', c.age, v=>{ c.age = v; touch(); }, 'Ej: 34, 500 años'));
+    datos.appendChild(fieldInput('Edad', c.age, v=>{ c.age = v; touch(); }, 'Ej: 34'));
     const gWrap = make(`<label class="field"><span>Género</span><select>
       <option value="">— Sin definir —</option>
       ${CHAR_GENDERS.map(g=>`<option value="${esc(g)}" ${c.gender===g?'selected':''}>${esc(g)}</option>`).join('')}
@@ -4091,7 +4460,6 @@ function viewCharacters(){
     datos.appendChild(fieldInput('Peso (kg)', c.weight, v=>{ c.weight = v; touch(); }, 'Ej: 68'));
     box.appendChild(datos);
 
-    // Roll + Papel
     const rp = make('<div class="grid2"></div>');
     const rollWrap = make(`<label class="field"><span>Roll</span><select>
       <option value="">— Sin definir —</option>
@@ -4107,9 +4475,8 @@ function viewCharacters(){
     rp.appendChild(srWrap);
     box.appendChild(rp);
 
-    box.appendChild(fieldInput('Descripción breve', c.short, v=>{ c.short = v; touch(); drawList(); }, 'Una frase que lo defina...'));
+    box.appendChild(fieldInput('Descripción breve', c.short, v=>{ c.short = v; touch(); drawList(); }, 'Una frase...'));
 
-    // Datos personalizados (key-value)
     const dBox = make('<div style="margin:16px 0"></div>');
     dBox.appendChild(make('<h3 style="font-size:14px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-bottom:8px">Datos del personaje</h3>'));
     const dlist = make('<div></div>');
@@ -4134,14 +4501,12 @@ function viewCharacters(){
     dBox.appendChild(addBtn);
     box.appendChild(dBox);
 
-    // Secciones dinámicas
-        box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:14px">Secciones de texto</div>'));
+    box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:14px">Secciones de texto</div>'));
     box.appendChild(makeSectionsUI(c, ()=>{ touch(); }));
 
     box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:18px">Estadísticas</div>'));
     box.appendChild(makeStatsUI(c, ()=>{ touch(); }));
 
-    // Relaciones (todas las redes)
     const relBox = make('<div class="paper" style="margin-top:16px;padding:16px 18px"></div>');
     relBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">🕸 Relaciones</h3>'));
     const relList = make('<div></div>');
@@ -4183,6 +4548,7 @@ function viewCharacters(){
     relBox.appendChild(addRel);
     box.appendChild(relBox);
 
+    box.appendChild(renderBacklinks(c.id));
     detail.appendChild(box);
   }
 
@@ -4216,18 +4582,17 @@ function viewCharacters(){
 }
 
 function abrirModalRelacion(desdeId){
-  if(!P.charnets || !P.charnets.length){ toast('Primero crea una red de personajes'); return; }
+  if(!P.charnets || !P.charnets.length){ toast('Primero crea una red'); return; }
   const validNets = P.charnets.filter(net =>
-    (net.members||[]).includes(desdeId) &&
-    (net.members||[]).some(id => id !== desdeId)
+    (net.members||[]).includes(desdeId) && (net.members||[]).some(id => id !== desdeId)
   );
   if(!validNets.length){ toast('Este personaje no está en ninguna red con otros'); return; }
   const netOpts = validNets.map(n=>`<option value="${n.id}">${esc(n.name||'Red')}</option>`).join('');
   openModal(`<h3>🕸 Nueva relación</h3>
     <label class="field"><span>Red</span><select data-net>${netOpts}</select></label>
     <label class="field"><span>Otro personaje</span><select data-o></select></label>
-    <label class="field"><span>Tipo de relación</span><input data-l placeholder="Hermanos, amigos, rivales..." value=""></label>
-    <label class="field"><span>Tipo de vínculo</span><select data-mutual>
+    <label class="field"><span>Tipo de relación</span><input data-l placeholder="Hermanos, amigos..."></label>
+    <label class="field"><span>Vínculo</span><select data-mutual>
       <option value="1">Mutua (↔)</option>
       <option value="0">Unilateral (→)</option>
     </select></label>
@@ -4273,7 +4638,7 @@ function viewCharNet(){
       <div class="pane-head">
         <h3>Redes</h3>
         <div class="pane-actions">
-          <button class="btn small primary" data-new title="Nueva red">+</button>
+          <button class="btn small primary" data-new>+</button>
         </div>
       </div>
       <div class="list" data-list></div>
@@ -4285,7 +4650,7 @@ function viewCharNet(){
 
   function drawList(){
     list.innerHTML = '';
-    if(!P.charnets.length){ list.innerHTML = '<div class="empty">Sin redes. Crea una con +.</div>'; return; }
+    if(!P.charnets.length){ list.innerHTML = '<div class="empty">Sin redes.</div>'; return; }
     P.charnets.forEach(n=>{
       const it = make(`<div class="list-item ${n.id===ui.charnet.sel?'active':''}">
         <span class="li-title">🕸 ${esc(n.name||'Sin nombre')}</span>
@@ -4300,7 +4665,7 @@ function viewCharNet(){
     let net = P.charnets.find(x=>x.id===ui.charnet.sel);
     if(!net){
       if(P.charnets.length){ net = P.charnets[0]; ui.charnet.sel = net.id; }
-      else { detail.appendChild(make('<div class="paper empty">No hay redes todavía.<br><small>Crea una con +</small></div>')); return; }
+      else { detail.appendChild(make('<div class="paper empty">No hay redes.<br><small>Crea una con +</small></div>')); return; }
     }
     net.members = net.members || []; net.relations = net.relations || [];
     net.positions = net.positions || {}; net.view = net.view || { x:0, y:0, zoom:1, fitted:false };
@@ -4325,7 +4690,7 @@ function viewCharNet(){
     ], 'Nombre de la red'));
 
     const memberBox = make('<div style="margin:14px 0"></div>');
-    memberBox.appendChild(make(`<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">👥 Personajes en esta red</h3>`));
+    memberBox.appendChild(make(`<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">👥 Personajes</h3>`));
     const chips = make('<div class="chips"></div>');
     function drawMembers(){
       chips.innerHTML = '';
@@ -4345,7 +4710,7 @@ function viewCharNet(){
     }
     drawMembers();
     memberBox.appendChild(chips);
-    const manageBtn = make('<button class="btn small" style="margin-top:8px">👥 Gestionar personajes</button>');
+    const manageBtn = make('<button class="btn small" style="margin-top:8px">👥 Gestionar</button>');
     manageBtn.onclick = ()=> modalManageMembers(net, ()=>{ touch(); drawList(); drawDetail(); });
     memberBox.appendChild(manageBtn);
     box.appendChild(memberBox);
@@ -4355,13 +4720,13 @@ function viewCharNet(){
       <button class="btn small" data-zoomout>−</button>
       <span class="nc-zoomval" data-zoomval>100%</span>
       <button class="btn small" data-zoomin>+</button>
-      <button class="btn small" data-fit>⤢ Encajar</button>
-      <button class="btn small" data-organize>✺ Organizar</button>
+      <button class="btn small" data-fit>⤢</button>
+      <button class="btn small" data-organize>✺</button>
     </div>`));
     const viewport = make('<div class="nc-viewport" data-viewport><div class="nc-world" data-world><svg class="netsvg" data-svg></svg></div></div>');
     canvasWrap.appendChild(viewport);
     const below = make(`<div class="pane-tools" style="max-width:420px;margin-top:10px">
-      <input class="pt-search" placeholder="🔍 Resaltar personaje...">
+      <input class="pt-search" placeholder="🔍 Resaltar...">
       <button class="btn small primary" data-newrel>+ Relación</button>
     </div>`);
     canvasWrap.appendChild(below);
@@ -4432,6 +4797,10 @@ function viewCharNet(){
     }
     function drawLines(){
       svg.innerHTML = '';
+      const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+      defs.innerHTML = `<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#c9a227"/></marker>`;
+      svg.appendChild(defs);
       net.relations.forEach(r=>{
         const pa = net.positions[r.a], pb = net.positions[r.b];
         if(!pa || !pb) return;
@@ -4440,12 +4809,8 @@ function viewCharNet(){
         line.setAttribute('x2', pb.x); line.setAttribute('y2', pb.y);
         line.setAttribute('stroke', '#8a6f1c');
         line.setAttribute('stroke-width', '2');
-        if(r.mutual === false){ line.setAttribute('stroke-dasharray', '4 4'); }
+        if(r.mutual === false){ line.setAttribute('stroke-dasharray', '4 4'); line.setAttribute('marker-end','url(#arrowhead)'); }
         else { line.setAttribute('stroke-dasharray', '6 4'); }
-        // Flecha para unilaterales
-        if(r.mutual === false){
-          line.setAttribute('marker-end','url(#arrowhead)');
-        }
         svg.appendChild(line);
         const t = document.createElementNS('http://www.w3.org/2000/svg','text');
         t.setAttribute('x', (pa.x+pb.x)/2);
@@ -4465,7 +4830,6 @@ function viewCharNet(){
         <div class="nodename">${esc(c.name||'Sin nombre')}</div>
       </div>`);
       el.style.left = pos.x + 'px'; el.style.top = pos.y + 'px';
-      el.title = 'Clic para abrir la ficha';
       world.appendChild(el);
       nodeEls[c.id] = el;
       let dragging=false, moved=false, sx=0, sy=0, ox=0, oy=0;
@@ -4491,12 +4855,6 @@ function viewCharNet(){
     drawLines();
     applyTransform();
     if(!cam.fitted){ cam.fitted = true; setTimeout(()=>fitView(true), 40); }
-
-    // SVG defs para flecha
-    const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
-    defs.innerHTML = `<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#c9a227"/></marker>`;
-    svg.appendChild(defs);
 
     const pointers = new Map();
     let panState = null, pinchState = null;
@@ -4654,7 +5012,7 @@ function viewCharNet(){
 
   function modalManageMembers(net, onDone){
     openModal(`<h3>👥 Gestionar personajes</h3>
-      <label class="field"><span>Buscar</span><input data-q placeholder="Filtra por nombre..." autofocus></label>
+      <label class="field"><span>Buscar</span><input data-q placeholder="Filtra..." autofocus></label>
       <div class="picklist" data-list></div>
       <div class="modal-actions" style="justify-content:space-between">
         <button class="btn" data-newchar>+ Crear personaje</button>
@@ -4716,7 +5074,7 @@ function viewCharNet(){
     openModal(`<h3>🕸 Nueva relación</h3>
       <label class="field"><span>Personaje A</span><select data-a>${opts}</select></label>
       <label class="field"><span>Personaje B</span><select data-b>${opts}</select></label>
-      <label class="field"><span>Relación</span><input data-l placeholder="Hermanos, amigos, rivales..."></label>
+      <label class="field"><span>Relación</span><input data-l></label>
       <label class="field"><span>Vínculo</span><select data-m>
         <option value="1">Mutua ↔</option>
         <option value="0">Unilateral (A → B)</option>
@@ -4749,7 +5107,7 @@ function viewCharNet(){
   return wrap;
 }
 
-/* ==== 8.9 Historia de Personajes (split pane, con timeline) ==== */
+/* ==== 8.9 Historia de Personajes ==== */
 function viewCharHist(){
   if(!ui.charhist) ui.charhist = { q:'', sel:null, highlight:null, viewMode:'vertical' };
   if(!ui.charhist.q) ui.charhist.q = '';
@@ -4801,10 +5159,7 @@ function viewCharHist(){
     const box = make('<div class="paper"></div>');
     box.appendChild(titleRow(c.name, v=>{ c.name = v; touch(); drawList(); }, [
       {label:'🧝 Ficha', onClick:()=>{ view='characters'; sel.characters = c.id; render(); }},
-      {label:'+ Hito', onClick:()=>{
-        c.timeline.push({ id: uid(), date:'', title:'', desc:'' });
-        touch(); drawDetail();
-      }}
+      {label:'+ Hito', onClick:()=>{ c.timeline.push({ id: uid(), date:'', title:'', desc:'' }); touch(); drawDetail(); }}
     ], 'Nombre del personaje'));
 
     const descWrap = make('<div style="margin-bottom:12px"></div>');
@@ -4812,11 +5167,10 @@ function viewCharHist(){
     descWrap.appendChild(createEditor(c.history, v=>{ c.history = v; touch(); }));
     box.appendChild(descWrap);
 
-    // Vista: vertical / horizontal
     const mode = ui.charhist.viewMode || 'vertical';
     const toolbar = make(`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:14px">
-      <button class="btn small" data-mode>${mode==='vertical'?'↔ Ver horizontal':'↕ Ver vertical'}</button>
-      <button class="btn small" data-sort>⇅ Ordenar por fecha</button>
+      <button class="btn small" data-mode>${mode==='vertical'?'↔ Horizontal':'↕ Vertical'}</button>
+      <button class="btn small" data-sort>⇅ Ordenar</button>
     </div>`);
     box.appendChild(toolbar);
     toolbar.querySelector('[data-mode]').onclick = ()=>{ ui.charhist.viewMode = mode==='vertical'?'horizontal':'vertical'; drawDetail(); };
@@ -4857,7 +5211,6 @@ function viewCharHist(){
       });
       if(c.timeline.length) body.appendChild(tl);
     } else {
-      // horizontal simple
       const arr = c.timeline.slice().map(t=>({ t, year: parseTimelineYear(t.date) })).sort((a,b)=>{
         if(a.year === null && b.year === null) return 0;
         if(a.year === null) return 1;
@@ -4933,7 +5286,7 @@ function viewGenealogy(){
       <div class="pane-head">
         <h3>Genealogías</h3>
         <div class="pane-actions">
-          <button class="btn small primary" data-new title="Nueva genealogía">+</button>
+          <button class="btn small primary" data-new>+</button>
         </div>
       </div>
       <div class="list" data-list></div>
@@ -4984,7 +5337,7 @@ function viewGenealogy(){
     ], 'Nombre de la genealogía'));
 
     const memberBox = make('<div style="margin:14px 0"></div>');
-    memberBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">👥 Personajes en el árbol</h3>'));
+    memberBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">👥 Personajes</h3>'));
     const chips = make('<div class="chips"></div>');
     function drawMembers(){
       chips.innerHTML = '';
@@ -5004,31 +5357,27 @@ function viewGenealogy(){
     }
     drawMembers();
     memberBox.appendChild(chips);
-    const manageBtn = make('<button class="btn small" style="margin-top:8px">👥 Gestionar personajes</button>');
+    const manageBtn = make('<button class="btn small" style="margin-top:8px">👥 Gestionar</button>');
     manageBtn.onclick = ()=> modalManageMembersGen(g, ()=>{ touch(); drawList(); drawDetail(); });
     memberBox.appendChild(manageBtn);
     box.appendChild(memberBox);
 
-    // Botón auto-layout
     const layoutBtn = make('<button class="btn small" style="margin-top:6px">🌳 Auto-organizar por generaciones</button>');
-    layoutBtn.onclick = ()=>{
-      autoLayoutGenealogy(g);
-      touch(); drawDetail();
-    };
+    layoutBtn.onclick = ()=>{ autoLayoutGenealogy(g); touch(); drawDetail(); };
 
     const canvasWrap = make('<div class="nc-wrap" style="margin-top:14px"></div>');
     canvasWrap.appendChild(make(`<div class="nc-toolbar">
       <button class="btn small" data-zoomout>−</button>
       <span class="nc-zoomval" data-zoomval>100%</span>
       <button class="btn small" data-zoomin>+</button>
-      <button class="btn small" data-fit>⤢ Encajar</button>
-      <button class="btn small" data-organize>✺ Organizar</button>
+      <button class="btn small" data-fit>⤢</button>
+      <button class="btn small" data-organize>✺</button>
     </div>`));
     const viewport = make('<div class="nc-viewport" data-viewport><div class="nc-world" data-world><svg class="netsvg" data-svg></svg></div></div>');
     canvasWrap.appendChild(viewport);
     canvasWrap.appendChild(layoutBtn);
     const below = make(`<div class="pane-tools" style="max-width:420px;margin-top:10px">
-      <input class="pt-search" placeholder="🔍 Resaltar personaje...">
+      <input class="pt-search" placeholder="🔍 Resaltar...">
       <button class="btn small primary" data-newrel>+ Relación</button>
     </div>`);
     canvasWrap.appendChild(below);
@@ -5091,10 +5440,6 @@ function viewGenealogy(){
     const nodeEls = {};
     function drawLines(){
       svg.innerHTML = '';
-      const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
-      defs.innerHTML = `<marker id="arrowhead2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-        <polygon points="0 0, 10 3.5, 0 7" fill="#c9a227"/></marker>`;
-      svg.appendChild(defs);
       g.relations.forEach(r=>{
         const pa = g.positions[r.a], pb = g.positions[r.b];
         if(!pa || !pb) return;
@@ -5247,7 +5592,7 @@ function viewGenealogy(){
               <option value="partner" ${r.type==='partner'?'selected':''}>Pareja ♥</option>
               <option value="other" ${r.type==='other'?'selected':''}>Otra</option>
             </select></label>
-            <label class="field"><span>Etiqueta libre (opcional)</span><input data-l value="${esc(r.label||'')}"></label>
+            <label class="field"><span>Etiqueta libre</span><input data-l value="${esc(r.label||'')}"></label>
             <div class="modal-actions">
               <button class="btn" data-no>Cancelar</button>
               <button class="btn primary" data-yes>Guardar</button>
@@ -5274,16 +5619,12 @@ function viewGenealogy(){
   }
 
   function autoLayoutGenealogy(g){
-    // Generaciones: BFS desde nodos sin padres
     const members = g.members.map(id=>P.characters.find(c=>c.id===id)).filter(Boolean);
-    const parents = {}; // id → [parent ids]
+    const parents = {};
     members.forEach(c=>{ parents[c.id] = []; });
-    g.relations.forEach(r=>{
-      if(r.type === 'parent' && parents[r.b]) parents[r.b].push(r.a);
-    });
+    g.relations.forEach(r=>{ if(r.type === 'parent' && parents[r.b]) parents[r.b].push(r.a); });
     const gen = {};
     const roots = members.filter(c => parents[c.id].length === 0);
-    // BFS
     const queue = roots.map(c=>({ id:c.id, g:0 }));
     while(queue.length){
       const { id, g:genIdx } = queue.shift();
@@ -5296,20 +5637,8 @@ function viewGenealogy(){
       });
     }
     members.forEach(c=>{ if(gen[c.id] === undefined) gen[c.id] = 0; });
-    // Agrupar por generación
     const byGen = {};
     members.forEach(c=>{ const k = gen[c.id]; if(!byGen[k]) byGen[k]=[]; byGen[k].push(c); });
-    // Ordenar por posición del padre/madre si existe
-    Object.keys(byGen).forEach(k=>{
-      byGen[k].sort((a,b)=>{
-        const pa = parents[a.id][0], pb = parents[b.id][0];
-        if(!pa && !pb) return 0;
-        if(!pa) return 1;
-        if(!pb) return -1;
-        return 0;
-      });
-    });
-    // Posicionar
     const gapX = 160, gapY = 160;
     Object.keys(byGen).sort((a,b)=>a-b).forEach(k=>{
       const row = byGen[k];
@@ -5323,7 +5652,7 @@ function viewGenealogy(){
   }
 
   function modalManageMembersGen(g, onDone){
-    openModal(`<h3>👥 Personajes en el árbol</h3>
+    openModal(`<h3>👥 Personajes del árbol</h3>
       <label class="field"><span>Buscar</span><input data-q placeholder="Filtra..." autofocus></label>
       <div class="picklist" data-list></div>
       <div class="modal-actions" style="justify-content:space-between">
@@ -5369,12 +5698,12 @@ function viewGenealogy(){
       <label class="field"><span>Personaje A</span><select data-a>${opts}</select></label>
       <label class="field"><span>Personaje B</span><select data-b>${opts}</select></label>
       <label class="field"><span>Tipo de relación</span><select data-t>
-        <option value="parent">Padre/Madre/Tutor de (A → B)</option>
-        <option value="sibling">Hermano/a de</option>
-        <option value="partner">Pareja de</option>
+        <option value="parent">Padre/Madre/Tutor (A → B)</option>
+        <option value="sibling">Hermano/a</option>
+        <option value="partner">Pareja</option>
         <option value="other">Otra</option>
       </select></label>
-      <label class="field"><span>Etiqueta libre (opcional)</span><input data-l placeholder="Padre adoptivo, hermanastro..."></label>
+      <label class="field"><span>Etiqueta libre</span><input data-l placeholder="Padre adoptivo, hermanastro..."></label>
       <div class="modal-actions">
         <button class="btn" data-no>Cancelar</button>
         <button class="btn primary" data-yes>Crear</button>
@@ -5461,7 +5790,6 @@ function viewHeights(){
       }}
     ], 'Nombre del grupo'));
 
-    // Miembros
     const chips = make('<div class="chips"></div>');
     function drawMembers(){
       chips.innerHTML = '';
@@ -5477,11 +5805,10 @@ function viewHeights(){
     drawMembers();
     box.appendChild(make('<div style="margin:14px 0 4px;font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft)">Personajes en el grupo</div>'));
     box.appendChild(chips);
-    const manageBtn = make('<button class="btn small" style="margin-top:8px">👥 Gestionar personajes</button>');
+    const manageBtn = make('<button class="btn small" style="margin-top:8px">👥 Gestionar</button>');
     manageBtn.onclick = ()=> modalManageHeightMembers(g, ()=>{ touch(); drawMembers(); drawChart(); drawList(); });
     box.appendChild(manageBtn);
 
-    // Chart
     const chartWrap = make('<div style="margin-top:18px"></div>');
     chartWrap.appendChild(make('<div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:8px">Representación a escala</div>'));
     const chart = make('<div class="height-chart"></div>');
@@ -5496,35 +5823,28 @@ function viewHeights(){
       const min = Math.min(...heights);
       const max = Math.max(...heights);
       const padTop = 30, padBottom = 30;
-      // Añadimos margen visual
       const displayMin = Math.max(0, Math.floor(min/10)*10 - 10);
       const displayMax = Math.ceil(max/10)*10 + 10;
       const range = displayMax - displayMin || 1;
       const heightPx = chart.clientHeight - padTop - padBottom;
 
-      // Líneas horizontales
       for(let h = Math.ceil(displayMin/10)*10; h <= displayMax; h += 10){
         const y = padTop + (1 - (h - displayMin) / range) * heightPx;
         const line = make(`<div class="height-line" style="top:${y}px"><span>${h} cm</span></div>`);
         chart.appendChild(line);
       }
-      // Personajes
       const total = list.length;
-      const colW = 70;
-      const totalW = total * colW + 40;
-      const availW = Math.max(chart.clientWidth - 40, totalW);
-      const offsetX = 30;
+      const colW = Math.min(80, Math.max(50, (chart.clientWidth - 60) / Math.max(1, total)));
       list.forEach((c, i)=>{
         const h = parseNumber(c.height);
-        if(h === null){ return; }
+        if(h === null) return;
         const barH = ((h - displayMin) / range) * heightPx;
         const fig = make(`<div class="height-fig">
-          <div class="val">${h} cm</div>
+          <div class="val">${h}</div>
           <div class="bar" style="height:${Math.max(6, barH)}px"></div>
           <div class="name">${esc(c.name||'?')}</div>
         </div>`);
-        const xPos = offsetX + (availW - offsetX*2) * (i / Math.max(1, total-1));
-        fig.style.left = (i * colW + 60) + 'px';
+        fig.style.left = (i * colW + 40) + 'px';
         fig.style.bottom = padBottom + 'px';
         chart.appendChild(fig);
       });
@@ -5592,8 +5912,8 @@ function viewBestiary(){
       <div class="pane-head">
         <h3>Bestiario</h3>
         <div class="pane-actions">
-          <button class="btn small" data-toggle-filters title="Filtros">🔎</button>
-          <button class="btn small" data-newfolder title="Nueva carpeta">📁+</button>
+          <button class="btn small" data-toggle-filters>🔎</button>
+          <button class="btn small" data-newfolder>📁+</button>
           <button class="btn small primary" data-new>+</button>
         </div>
       </div>
@@ -5674,7 +5994,7 @@ function viewBestiary(){
     box.appendChild(imagePicker(b.image, v=>{ b.image = v; touch(); ctrl.drawList(); }));
 
     const datos = make('<div class="grid2"></div>');
-    datos.appendChild(fieldInput('Especie / Tipo', b.species, v=>{ b.species = v; touch(); ctrl.drawList(); }, 'Ej: Dragón, No-muerto...'));
+    datos.appendChild(fieldInput('Especie / Tipo', b.species, v=>{ b.species = v; touch(); ctrl.drawList(); }, 'Ej: Dragón'));
     const folderWrap = make(`<label class="field"><span>Carpeta</span>
       <select>
         <option value="">— Sin carpeta —</option>
@@ -5688,7 +6008,7 @@ function viewBestiary(){
     </select></label>`);
     persWrap.querySelector('select').onchange = (e)=>{ b.personality = e.target.value; touch(); ctrl.drawList(); };
     datos.appendChild(persWrap);
-    const dangWrap = make(`<label class="field"><span>Nivel de peligro</span><select>
+    const dangWrap = make(`<label class="field"><span>Peligro</span><select>
       <option value="">— Sin definir —</option>
       ${BEAST_DANGER.map(g=>`<option value="${esc(g)}" ${b.danger===g?'selected':''}>${esc(g)}</option>`).join('')}
     </select></label>`);
@@ -5697,7 +6017,6 @@ function viewBestiary(){
     box.appendChild(datos);
     box.appendChild(fieldInput('Descripción breve', b.short, v=>{ b.short = v; touch(); ctrl.drawList(); }, 'Una frase...'));
 
-    // Datos
     const dBox = make('<div style="margin:16px 0"></div>');
     dBox.appendChild(make('<h3 style="font-size:14px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-bottom:8px">Datos</h3>'));
     const dlist = make('<div></div>');
@@ -5722,13 +6041,13 @@ function viewBestiary(){
     dBox.appendChild(addBtn);
     box.appendChild(dBox);
 
-    // Secciones dinámicas
     box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:14px">Secciones de texto</div>'));
     box.appendChild(makeSectionsUI(b, ()=>{ touch(); }));
 
     box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:18px">Estadísticas</div>'));
     box.appendChild(makeStatsUI(b, ()=>{ touch(); }));
 
+    box.appendChild(renderBacklinks(b.id));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
@@ -5765,7 +6084,7 @@ function viewRaces(){
       <div class="pane-head">
         <h3>Razas</h3>
         <div class="pane-actions">
-          <button class="btn small" data-newfolder title="Nueva carpeta">📁+</button>
+          <button class="btn small" data-newfolder>📁+</button>
           <button class="btn small primary" data-new>+</button>
         </div>
       </div>
@@ -5829,7 +6148,7 @@ function viewRaces(){
     box.appendChild(imagePicker(r.image, v=>{ r.image = v; touch(); ctrl.drawList(); }));
 
     const datos = make('<div class="grid2"></div>');
-    datos.appendChild(fieldInput('Clasificación', r.classification, v=>{ r.classification = v; touch(); ctrl.drawList(); }, 'Ej: Humanoide, Élfica...'));
+    datos.appendChild(fieldInput('Clasificación', r.classification, v=>{ r.classification = v; touch(); ctrl.drawList(); }, 'Ej: Humanoide'));
     datos.appendChild(fieldInput('Esperanza de vida', r.lifespan, v=>{ r.lifespan = v; touch(); ctrl.drawList(); }, 'Ej: 200 años'));
     const folderWrap = make(`<label class="field" style="grid-column:1/-1"><span>Carpeta</span>
       <select>
@@ -5871,6 +6190,7 @@ function viewRaces(){
     box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:18px">Estadísticas</div>'));
     box.appendChild(makeStatsUI(r, ()=>{ touch(); }));
 
+    box.appendChild(renderBacklinks(r.id));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
@@ -5888,7 +6208,7 @@ function viewRaces(){
   return wrap;
 }
 
-/* ==== 8.14 Mundo (sin cambios) ==== */
+/* ==== 8.14 Mundo (con toggle edición/lectura en mapas) ==== */
 function findZone(id, arr){
   arr = arr || P.world;
   for(const z of arr){
@@ -6033,7 +6353,6 @@ function viewWorld(){
     linksBox.appendChild(addLink);
     box.appendChild(linksBox);
 
-    // Personajes que viven aquí
     const charsBox = make('<div style="margin-top:18px"></div>');
     charsBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🧝 Personajes que viven aquí</h3>'));
     const charsChips = make('<div class="chips"></div>');
@@ -6042,7 +6361,7 @@ function viewWorld(){
       (z.characterIds||[]).forEach((id, i)=>{
         const ch = P.characters.find(x=>x.id===id);
         if(!ch) return;
-        const chip = make(`<span class="chip">🧝 ${esc(ch.name||'Sin nombre')}<span class="x" title="Quitar">✕</span></span>`);
+        const chip = make(`<span class="chip">🧝 ${esc(ch.name||'Sin nombre')}<span class="x">✕</span></span>`);
         chip.querySelector('.x').onclick = (ev)=>{ ev.stopPropagation(); z.characterIds.splice(i,1); touch(); drawZoneChars(); };
         chip.onclick = (ev)=>{ if(ev.target.classList.contains('x')) return; goTo(ch.id); };
         chip.style.cursor = 'pointer';
@@ -6056,9 +6375,13 @@ function viewWorld(){
     charsBox.appendChild(charsChips);
     box.appendChild(charsBox);
 
+    /* ---------- MAPA con toggle edición / lectura ---------- */
     const mapBox = make('<div style="margin-top:20px"></div>');
     mapBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🗺 Mapa</h3>'));
-    const map = z.map = z.map || { image:'', pins: [] };
+    const map = z.map = z.map || { image:'', pins:[], editMode:true };
+    if(typeof map.editMode !== 'boolean') map.editMode = true;
+    let editMode = map.editMode;
+
     const mapImgPick = make(`<div class="imgpick">
       <div class="imgprev">Sin mapa</div>
       <div class="imgbtns">
@@ -6070,50 +6393,116 @@ function viewWorld(){
     const paintMap = ()=>{ if(map.image){ mprev.style.backgroundImage = `url("${map.image}")`; mprev.textContent=''; } else { mprev.style.backgroundImage=''; mprev.textContent='Sin mapa'; } };
     paintMap();
     const mInp = document.createElement('input'); mInp.type='file'; mInp.accept='image/*';
-    mInp.onchange = ()=>{
+    mInp.onchange = async ()=>{
       const f = mInp.files[0]; if(!f) return;
-      const r = new FileReader();
-      r.onload = ()=>{ map.image = r.result; touch(); paintMap(); drawMap(); };
-      r.readAsDataURL(f);
+      try{
+        const dataUrl = await compressImage(f);
+        map.image = dataUrl; touch(); paintMap(); drawMap();
+      }catch(e){ toast('No se pudo procesar la imagen'); }
     };
     mapImgPick.querySelector('[data-up]').onclick = ()=> mInp.click();
     mapImgPick.querySelector('[data-del]').onclick = ()=>{ map.image=''; touch(); paintMap(); drawMap(); };
     mapBox.appendChild(mapImgPick);
+
+    // Botón de toggle entre modo edición y modo lectura
+    const modeBtn = make(`<button class="btn small map-edit-toggle"></button>`);
+    function updateModeBtn(){
+      modeBtn.textContent = editMode ? '✏️ Editar' : '👁 Solo ver';
+      modeBtn.title = editMode ? 'Cambiar a modo lectura (marcadores no se mueven)' : 'Cambiar a modo edición (arrastrar marcadores)';
+      modeBtn.classList.toggle('primary', editMode);
+    }
+    updateModeBtn();
+    modeBtn.onclick = ()=>{
+      map.editMode = !editMode;
+      editMode = map.editMode;
+      updateModeBtn();
+      // Mostrar/ocultar controles de edición
+      pinCtrls.style.display = editMode ? '' : 'none';
+      addPin.style.display = editMode ? '' : 'none';
+      drawMap();
+      touch();
+      toast(editMode ? '✏️ Modo edición — puedes mover los marcadores' : '👁 Modo lectura — toca un marcador para ir');
+    };
+
     const mapBoxEl = make('<div class="mapbox" data-map></div>');
+    mapBoxEl.appendChild(modeBtn);
     const pinCtrls = make('<div class="pinlist" data-pins></div>');
+    const addPin = make('<button class="btn small" style="margin-top:8px">+ Añadir marcador</button>');
+    pinCtrls.style.display = editMode ? '' : 'none';
+    addPin.style.display = editMode ? '' : 'none';
+
     mapBox.appendChild(mapBoxEl);
     mapBox.appendChild(pinCtrls);
+    mapBox.appendChild(addPin);
+
     function drawMap(){
+      mapBoxEl.classList.toggle('edit-mode', editMode);
+      mapBoxEl.classList.toggle('view-mode', !editMode);
       mapBoxEl.style.backgroundImage = map.image ? `url("${map.image}")` : '';
+      // Conservar el botón toggle
+      const btnParent = modeBtn.parentNode;
+      if(btnParent) btnParent.removeChild(modeBtn);
       mapBoxEl.innerHTML = '';
+      mapBoxEl.appendChild(modeBtn);
+
       if(!map.image){
-        mapBoxEl.appendChild(make('<div class="empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">Sube un mapa</div>'));
+        mapBoxEl.appendChild(make('<div class="empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:0">Sube un mapa</div>'));
       }
       map.pins.forEach(p=>{
-        const pin = make(`<div class="pin">${esc(p.label||'•')}</div>`);
+        const pin = make(`<div class="pin ${editMode?'editable':'clickable'}">${esc(p.label||'•')}</div>`);
         pin.style.left = p.x + '%'; pin.style.top = p.y + '%';
         mapBoxEl.appendChild(pin);
-        let dragging = false, moved = false;
-        pin.addEventListener('pointerdown', e=>{ e.stopPropagation(); dragging = true; moved = false; pin.setPointerCapture(e.pointerId); });
-        pin.addEventListener('pointermove', e=>{
-          if(!dragging) return;
-          moved = true;
-          const r = mapBoxEl.getBoundingClientRect();
-          p.x = Math.max(0, Math.min(100, ((e.clientX - r.left)/r.width)*100));
-          p.y = Math.max(0, Math.min(100, ((e.clientY - r.top)/r.height)*100));
-          pin.style.left = p.x + '%'; pin.style.top = p.y + '%';
-        });
-        pin.addEventListener('pointerup', ()=>{
-          dragging = false;
-          if(moved){ touch(); }
-          else if(p.target){ goTo(p.target); }
-        });
+
+        if(editMode){
+          // Modo edición: arrastrar
+          let dragging = false, moved = false;
+          pin.addEventListener('pointerdown', e=>{
+            e.stopPropagation();
+            dragging = true; moved = false;
+            pin.setPointerCapture(e.pointerId);
+            pin.style.zIndex = 10;
+          });
+          pin.addEventListener('pointermove', e=>{
+            if(!dragging) return;
+            moved = true;
+            const r = mapBoxEl.getBoundingClientRect();
+            p.x = Math.max(0, Math.min(100, ((e.clientX - r.left)/r.width)*100));
+            p.y = Math.max(0, Math.min(100, ((e.clientY - r.top)/r.height)*100));
+            pin.style.left = p.x + '%'; pin.style.top = p.y + '%';
+          });
+          pin.addEventListener('pointerup', e=>{
+            dragging = false; pin.style.zIndex = 3;
+            if(moved) touch();
+          });
+          pin.addEventListener('pointercancel', ()=>{ dragging = false; pin.style.zIndex = 3; });
+        } else {
+          // Modo lectura: click para navegar
+          pin.addEventListener('click', e=>{
+            e.stopPropagation();
+            if(p.target) goTo(p.target);
+            else toast('Este marcador no tiene destino');
+          });
+        }
       });
-      drawPins();
+      if(editMode) drawPins();
     }
+
+    // Click en el mapa (sólo en modo edición) → añade marcador
+    mapBoxEl.addEventListener('click', e=>{
+      if(!editMode) return;
+      if(!map.image) return;
+      if(e.target.closest('.pin')) return;
+      if(e.target.closest('.map-edit-toggle')) return;
+      const r = mapBoxEl.getBoundingClientRect();
+      const x = ((e.clientX - r.left)/r.width)*100;
+      const y = ((e.clientY - r.top)/r.height)*100;
+      map.pins.push({ id: uid(), x, y, label:'Nuevo', target:null });
+      touch(); drawMap();
+    });
+
     function drawPins(){
       pinCtrls.innerHTML = '';
-      if(!map.pins.length){ pinCtrls.innerHTML = '<div class="empty" style="padding:6px">Sin marcadores.</div>'; return; }
+      if(!map.pins.length){ pinCtrls.innerHTML = '<div class="empty" style="padding:6px">Sin marcadores. Toca el mapa para añadir uno.</div>'; return; }
       const ents = indexEntities();
       map.pins.forEach((p, i)=>{
         const row = make(`<div class="pinrow">
@@ -6124,17 +6513,17 @@ function viewWorld(){
           </select>
           <button class="btn small danger">✕</button>
         </div>`);
-        row.querySelector('[data-l]').oninput = e => { p.label = e.target.value; touch(); };
+        row.querySelector('[data-l]').oninput = e => { p.label = e.target.value; touch(); drawMap(); };
         row.querySelector('[data-t]').onchange = e => { p.target = e.target.value || null; touch(); };
         row.querySelector('button').onclick = ()=>{ map.pins.splice(i,1); touch(); drawMap(); };
         pinCtrls.appendChild(row);
       });
     }
-    const addPin = make('<button class="btn small" style="margin-top:8px">+ Añadir marcador</button>');
     addPin.onclick = ()=>{ map.pins.push({ id: uid(), x:50, y:50, label:'Nuevo', target:null }); touch(); drawMap(); };
-    mapBox.appendChild(addPin);
     drawMap();
     box.appendChild(mapBox);
+
+    box.appendChild(renderBacklinks(z.id));
     detail.appendChild(box);
   }
   wrap.querySelector('[data-newworld]').onclick = ()=>{
@@ -6186,7 +6575,7 @@ function viewLore(){
       <div class="pane-head">
         <h3>Lore</h3>
         <div class="pane-actions">
-          <button class="btn small" data-newfolder title="Nueva carpeta">📁+</button>
+          <button class="btn small" data-newfolder>📁+</button>
           <button class="btn small primary" data-new>+</button>
         </div>
       </div>
@@ -6249,7 +6638,6 @@ function viewLore(){
     ], 'Título'));
     box.appendChild(imagePicker(l.image, v=>{ l.image = v; touch(); ctrl.drawList(); }));
 
-    // Tipo
     const typeWrap = make(`<label class="field"><span>Tipo</span><select></select></label>`);
     const ts = typeWrap.querySelector('select');
     const oNone = document.createElement('option'); oNone.value=''; oNone.textContent='— Sin definir —'; ts.appendChild(oNone);
@@ -6277,10 +6665,10 @@ function viewLore(){
     box.appendChild(folderWrap);
     box.appendChild(fieldInput('Resumen breve', l.short, v=>{ l.short = v; touch(); ctrl.drawList(); }, 'Una frase...'));
 
-    // Secciones
     box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:14px">Secciones de texto</div>'));
     box.appendChild(makeSectionsUI(l, ()=>{ touch(); }));
 
+    box.appendChild(renderBacklinks(l.id));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
@@ -6308,7 +6696,7 @@ function viewNotes(){
       <div class="pane-head">
         <h3>Notas</h3>
         <div class="pane-actions">
-          <button class="btn small" data-newfolder title="Nueva carpeta">📁+</button>
+          <button class="btn small" data-newfolder>📁+</button>
           <button class="btn small" data-paste>📥</button>
           <button class="btn small primary" data-new>+</button>
         </div>
@@ -6375,6 +6763,7 @@ function viewNotes(){
     folderWrap.querySelector('select').onchange = e=>{ n.folder = e.target.value; touch(); ctrl.drawList(); };
     box.appendChild(folderWrap);
     box.appendChild(createEditor(n.content, v=>{ n.content = v; touch(); ctrl.drawList(); }));
+    box.appendChild(renderBacklinks(n.id));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
@@ -6399,62 +6788,13 @@ function viewNotes(){
 
 /* ==== 8.17 Ajustes ==== */
 const THEMES = {
-  codex: {
-    label:'Codex (original)',
-    vars: {
-      '--bg':'#0f0c09', '--bg2':'#171310', '--paper':'#1d1813', '--paper2':'#241d16',
-      '--line':'#3a2f22', '--line2':'#4d3f2c', '--ink':'#e9dfcc', '--ink-dim':'#b7a68c',
-      '--muted':'#8a7a63', '--gold':'#c9a227', '--gold-soft':'#8a6f1c'
-    }
-  },
-  dark: {
-    label:'Oscuro neutro',
-    vars: {
-      '--bg':'#0a0a0c', '--bg2':'#131316', '--paper':'#1a1a1e', '--paper2':'#222227',
-      '--line':'#33333a', '--line2':'#4a4a52', '--ink':'#e8e8ec', '--ink-dim':'#b4b4bc',
-      '--muted':'#78787f', '--gold':'#7ea6ff', '--gold-soft':'#4a6dbf'
-    }
-  },
-  sepia: {
-    label:'Sepia / pergamino',
-    vars: {
-      '--bg':'#efe4cf', '--bg2':'#e6d8bd', '--paper':'#f5ebd3', '--paper2':'#eadcbe',
-      '--line':'#c8b48e', '--line2':'#a89269', '--ink':'#3b2e1a', '--ink-dim':'#5a4a2e',
-      '--muted':'#8a7a5a', '--gold':'#8a6f1c', '--gold-soft':'#a89060'
-    }
-  },
-  ocean: {
-    label:'Océano',
-    vars: {
-      '--bg':'#0a1520', '--bg2':'#0f1e2c', '--paper':'#132836', '--paper2':'#1a3444',
-      '--line':'#294a5e', '--line2':'#3a6a82', '--ink':'#d6e8f2', '--ink-dim':'#9db9c9',
-      '--muted':'#6a8a9c', '--gold':'#5fb8d9', '--gold-soft':'#3d7a92'
-    }
-  },
-  forest: {
-    label:'Bosque',
-    vars: {
-      '--bg':'#0e1510', '--bg2':'#141e18', '--paper':'#1a2620', '--paper2':'#24332c',
-      '--line':'#3a4a3f', '--line2':'#4f6455', '--ink':'#dce8dc', '--ink-dim':'#a8b8a8',
-      '--muted':'#788a78', '--gold':'#7fc97f', '--gold-soft':'#4a7f4a'
-    }
-  },
-  blood: {
-    label:'Sangre / rojo',
-    vars: {
-      '--bg':'#150a0a', '--bg2':'#1e0e0e', '--paper':'#261414', '--paper2':'#331a1a',
-      '--line':'#4a2828', '--line2':'#6a3a3a', '--ink':'#f0dcdc', '--ink-dim':'#c9a0a0',
-      '--muted':'#8a6060', '--gold':'#e85a5a', '--gold-soft':'#8a3030'
-    }
-  },
-  purple: {
-    label:'Púrpura arcano',
-    vars: {
-      '--bg':'#0f0a18', '--bg2':'#161022', '--paper':'#1c1428', '--paper2':'#261c34',
-      '--line':'#3a2c50', '--line2':'#4f3e68', '--ink':'#e8dcf0', '--ink-dim':'#b8a8c9',
-      '--muted':'#786890', '--gold':'#b88ee8', '--gold-soft':'#6848a0'
-    }
-  }
+  codex: { label:'Codex (original)', vars: { '--bg':'#0f0c09','--bg2':'#171310','--paper':'#1d1813','--paper2':'#241d16','--line':'#3a2f22','--line2':'#4d3f2c','--ink':'#e9dfcc','--ink-dim':'#b7a68c','--muted':'#8a7a63','--gold':'#c9a227','--gold-soft':'#8a6f1c' } },
+  dark: { label:'Oscuro neutro', vars: { '--bg':'#0a0a0c','--bg2':'#131316','--paper':'#1a1a1e','--paper2':'#222227','--line':'#33333a','--line2':'#4a4a52','--ink':'#e8e8ec','--ink-dim':'#b4b4bc','--muted':'#78787f','--gold':'#7ea6ff','--gold-soft':'#4a6dbf' } },
+  sepia: { label:'Sepia / pergamino', vars: { '--bg':'#efe4cf','--bg2':'#e6d8bd','--paper':'#f5ebd3','--paper2':'#eadcbe','--line':'#c8b48e','--line2':'#a89269','--ink':'#3b2e1a','--ink-dim':'#5a4a2e','--muted':'#8a7a5a','--gold':'#8a6f1c','--gold-soft':'#a89060' } },
+  ocean: { label:'Océano', vars: { '--bg':'#0a1520','--bg2':'#0f1e2c','--paper':'#132836','--paper2':'#1a3444','--line':'#294a5e','--line2':'#3a6a82','--ink':'#d6e8f2','--ink-dim':'#9db9c9','--muted':'#6a8a9c','--gold':'#5fb8d9','--gold-soft':'#3d7a92' } },
+  forest: { label:'Bosque', vars: { '--bg':'#0e1510','--bg2':'#141e18','--paper':'#1a2620','--paper2':'#24332c','--line':'#3a4a3f','--line2':'#4f6455','--ink':'#dce8dc','--ink-dim':'#a8b8a8','--muted':'#788a78','--gold':'#7fc97f','--gold-soft':'#4a7f4a' } },
+  blood: { label:'Sangre / rojo', vars: { '--bg':'#150a0a','--bg2':'#1e0e0e','--paper':'#261414','--paper2':'#331a1a','--line':'#4a2828','--line2':'#6a3a3a','--ink':'#f0dcdc','--ink-dim':'#c9a0a0','--muted':'#8a6060','--gold':'#e85a5a','--gold-soft':'#8a3030' } },
+  purple: { label:'Púrpura arcano', vars: { '--bg':'#0f0a18','--bg2':'#161022','--paper':'#1c1428','--paper2':'#261c34','--line':'#3a2c50','--line2':'#4f3e68','--ink':'#e8dcf0','--ink-dim':'#b8a8c9','--muted':'#786890','--gold':'#b88ee8','--gold-soft':'#6848a0' } }
 };
 
 function applyTheme(){
@@ -6462,13 +6802,8 @@ function applyTheme(){
   const theme = THEMES[t] || THEMES.codex;
   const root = document.documentElement;
   Object.entries(theme.vars).forEach(([k,v]) => root.style.setProperty(k, v));
-  // Accent override
-  if(P && P.settings && P.settings.accent){
-    root.style.setProperty('--gold', P.settings.accent);
-  }
-  if(P && P.settings && P.settings.bodyFont){
-    root.style.setProperty('--body-font', P.settings.bodyFont);
-  }
+  if(P && P.settings && P.settings.accent) root.style.setProperty('--gold', P.settings.accent);
+  if(P && P.settings && P.settings.bodyFont) root.style.setProperty('--body-font', P.settings.bodyFont);
 }
 
 function viewSettings(){
@@ -6483,9 +6818,9 @@ function viewSettings(){
     <div class="paper">
       <h3 style="margin-bottom:10px">✨ Color de acento</h3>
       <div class="settings-row">
-        <label>Color de acento (sobrescribe el del tema)</label>
+        <label>Color de acento</label>
         <input type="color" data-accent value="${esc(P.settings.accent||'#c9a227')}">
-        <button class="btn small" data-accent-reset>Restablecer del tema</button>
+        <button class="btn small" data-accent-reset>Restablecer</button>
       </div>
     </div>
     <div class="paper">
@@ -6496,24 +6831,24 @@ function viewSettings(){
           <option value="">Por defecto (serif)</option>
           <option value="Georgia, serif" ${P.settings.bodyFont==='Georgia, serif'?'selected':''}>Georgia</option>
           <option value="'Times New Roman', serif" ${P.settings.bodyFont==="'Times New Roman', serif"?'selected':''}>Times New Roman</option>
-          <option value="system-ui, sans-serif" ${P.settings.bodyFont==='system-ui, sans-serif'?'selected':''}>Sans-serif moderna</option>
+          <option value="system-ui, sans-serif" ${P.settings.bodyFont==='system-ui, sans-serif'?'selected':''}>Sans-serif</option>
           <option value="'Courier New', monospace" ${P.settings.bodyFont==="'Courier New', monospace"?'selected':''}>Courier New</option>
         </select>
       </div>
     </div>
     <div class="paper">
       <h3 style="margin-bottom:10px">🧩 Secciones visibles</h3>
-      <p class="hint" style="margin-bottom:10px">Desmarca las secciones que no uses en este proyecto para ocultarlas del menú lateral.</p>
+      <p class="hint" style="margin-bottom:10px">Desmarca las que no uses.</p>
       <div data-sections></div>
     </div>
     <div class="paper">
       <h3 style="margin-bottom:10px">🛠 Avanzado</h3>
       <div class="settings-row">
-        <label>Reiniciar todos los ajustes visuales</label>
-        <button class="btn danger" data-reset-visual>Restablecer tema</button>
+        <label>Restablecer ajustes visuales</label>
+        <button class="btn danger" data-reset-visual>Restablecer</button>
       </div>
       <div class="settings-row">
-        <label>Exportar este proyecto (JSON)</label>
+        <label>Exportar proyecto</label>
         <button class="btn" data-export>Exportar</button>
       </div>
     </div>
@@ -6539,26 +6874,12 @@ function viewSettings(){
     themesBox.appendChild(card);
   });
 
-  w.querySelector('[data-accent]').oninput = e => {
-    P.settings.accent = e.target.value;
-    applyTheme(); touch();
-  };
-  w.querySelector('[data-accent-reset]').onclick = ()=>{
-    P.settings.accent = '';
-    applyTheme(); touch();
-    w.querySelector('[data-accent]').value = THEMES[P.settings.theme].vars['--gold'];
-  };
-  w.querySelector('[data-font]').onchange = e => {
-    P.settings.bodyFont = e.target.value;
-    applyTheme(); touch();
-  };
-  w.querySelector('[data-reset-visual]').onclick = ()=>{
-    P.settings = { theme:'codex', accent:'#c9a227', bodyFont:'' };
-    applyTheme(); touch(); render();
-  };
-  w.querySelector('[data-export]').onclick = ()=> $('#btnExport').click();
+  w.querySelector('[data-accent]').oninput = e => { P.settings.accent = e.target.value; applyTheme(); touch(); };
+  w.querySelector('[data-accent-reset]').onclick = ()=>{ P.settings.accent = ''; applyTheme(); touch(); w.querySelector('[data-accent]').value = THEMES[P.settings.theme].vars['--gold']; };
+  w.querySelector('[data-font]').onchange = e => { P.settings.bodyFont = e.target.value; applyTheme(); touch(); };
+  w.querySelector('[data-reset-visual]').onclick = ()=>{ P.settings = { theme:'codex', accent:'#c9a227', bodyFont:'' }; applyTheme(); touch(); render(); };
+  w.querySelector('[data-export]').onclick = ()=> openExportModal();
 
-  // Secciones visibles / ocultas
   const sectionsBox = w.querySelector('[data-sections]');
   if(sectionsBox){
     const groups = {};
@@ -6588,7 +6909,6 @@ function viewSettings(){
       });
     });
   }
-
   return w;
 }
 
@@ -6638,6 +6958,8 @@ function renderSidebar(){
     });
     sb.appendChild(grp);
   });
+  const wc = projectWordCount();
+  sb.appendChild(make(`<div class="nav-stats" title="Palabras totales del proyecto">📝 <b>${wc.toLocaleString('es')}</b> palabra${wc===1?'':'s'}</div>`));
 }
 
 const VIEWS = {
@@ -6665,22 +6987,435 @@ function render(){
 }
 
 /* ============================================================
-   10. TOPBAR
+   10. EXPORTACIÓN
+============================================================ */
+function downloadFile(content, filename, mime){
+  const blob = new Blob([content], {type: mime});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function buildManuscriptMarkdown(opts){
+  const lines = [];
+  lines.push(`# ${P.name || 'Proyecto'}\n`);
+  if(P.description){
+    const d = stripHtml(P.description);
+    if(d) lines.push(`> ${d}\n`);
+  }
+  if(P.genres && P.genres.length) lines.push(`*Géneros: ${P.genres.join(', ')}*\n`);
+  lines.push('\n---\n');
+
+  const acts = P.story.acts || [];
+  const chapters = P.story.chapters || [];
+  const used = new Set();
+  function chapterToMd(c, level){
+    const out = [];
+    const hash = '#'.repeat(level);
+    out.push(`\n${hash} ${c.title || 'Capítulo sin título'}\n`);
+    const meta = [];
+    if(c.season) meta.push(`*${c.season}*`);
+    if(c.start || c.end) meta.push(`_${c.start || '?'}${c.end ? ' – ' + c.end : ''}_`);
+    if(meta.length) out.push(meta.join(' · ') + '\n');
+    out.push('\n' + htmlToMd(c.content || '') + '\n');
+    return out.join('\n');
+  }
+  if(acts.length){
+    acts.forEach(a=>{
+      const cs = chapters.filter(c=>c.actId === a.id);
+      if(!cs.length) return;
+      lines.push(`\n## ${a.name || 'Acto'}\n`);
+      if(a.description) lines.push('\n' + htmlToMd(a.description) + '\n');
+      cs.forEach(c=>{ lines.push(chapterToMd(c, 3)); used.add(c.id); });
+    });
+  }
+  const orphan = chapters.filter(c=>!used.has(c.id));
+  if(orphan.length){
+    if(!acts.length) lines.push('\n## Capítulos\n');
+    orphan.forEach(c=> lines.push(chapterToMd(c, acts.length ? 3 : 2)));
+  }
+
+  if((P.story.events||[]).length){
+    lines.push('\n---\n\n## Eventos\n');
+    P.story.events.forEach(e=>{
+      lines.push(`\n### ${e.title || 'Evento'}\n`);
+      const meta = [];
+      if(e.type) meta.push(`**${e.type}**`);
+      if(e.date) meta.push(`*${e.date}*`);
+      if(meta.length) lines.push(meta.join(' · ') + '\n');
+      if(e.content) lines.push('\n' + htmlToMd(e.content) + '\n');
+    });
+  }
+  if((P.story.timelines||[]).length){
+    lines.push('\n---\n\n## Cronologías\n');
+    P.story.timelines.forEach(t=>{
+      lines.push(`\n### ${t.name || 'Cronología'}\n`);
+      if(t.description) lines.push('\n' + htmlToMd(t.description) + '\n');
+      (t.hitos||[]).forEach(h=>{
+        lines.push(`\n- **${h.date || 'Sin fecha'}** — ${h.title || ''}${h.desc ? ': ' + stripHtml(h.desc) : ''}`);
+      });
+    });
+  }
+
+  if(opts.chars && (P.characters||[]).length){
+    lines.push('\n---\n\n## Personajes\n');
+    P.characters.forEach(c=>{
+      lines.push(`\n### ${c.name || 'Personaje'}\n`);
+      const info = [];
+      if(c.nickname) info.push(`_"${c.nickname}"_`);
+      if(c.age) info.push(`Edad: ${c.age}`);
+      if(c.gender) info.push(`Género: ${c.gender}`);
+      if(c.roll) info.push(`Roll: ${c.roll}`);
+      if(c.storyRole) info.push(`Papel: ${c.storyRole}`);
+      if(info.length) lines.push('\n' + info.join(' · ') + '\n');
+      if(c.short) lines.push('\n' + c.short + '\n');
+      if(c.history) lines.push('\n**Historia:**\n\n' + htmlToMd(c.history) + '\n');
+      (c.sections||[]).forEach(s=>{
+        if(s.title || s.content) lines.push(`\n**${s.title || 'Sección'}**\n\n${htmlToMd(s.content||'')}\n`);
+      });
+      if((c.timeline||[]).length){
+        lines.push('\n**Cronología personal:**\n');
+        c.timeline.forEach(t=> lines.push(`- **${t.date || '—'}** ${t.title || ''}${t.desc ? ': ' + stripHtml(t.desc) : ''}`));
+      }
+    });
+  }
+  if(opts.bestiary && (P.bestiary||[]).length){
+    lines.push('\n---\n\n## Bestiario\n');
+    P.bestiary.forEach(b=>{
+      lines.push(`\n### ${b.name || 'Bestia'}\n`);
+      const info = [];
+      if(b.species) info.push(`Especie: ${b.species}`);
+      if(b.personality) info.push(`Personalidad: ${b.personality}`);
+      if(b.danger) info.push(`Peligro: ${b.danger}`);
+      if(info.length) lines.push('\n' + info.join(' · ') + '\n');
+      if(b.short) lines.push('\n' + b.short + '\n');
+      (b.sections||[]).forEach(s=>{
+        if(s.title || s.content) lines.push(`\n**${s.title || 'Sección'}**\n\n${htmlToMd(s.content||'')}\n`);
+      });
+    });
+  }
+  if(opts.races && (P.races||[]).length){
+    lines.push('\n---\n\n## Razas\n');
+    P.races.forEach(r=>{
+      lines.push(`\n### ${r.name || 'Raza'}\n`);
+      const info = [];
+      if(r.classification) info.push(`Clasificación: ${r.classification}`);
+      if(r.lifespan) info.push(`Vida: ${r.lifespan}`);
+      if(info.length) lines.push('\n' + info.join(' · ') + '\n');
+      if(r.short) lines.push('\n' + r.short + '\n');
+      (r.sections||[]).forEach(s=>{
+        if(s.title || s.content) lines.push(`\n**${s.title || 'Sección'}**\n\n${htmlToMd(s.content||'')}\n`);
+      });
+    });
+  }
+  if(opts.lore && (P.lore||[]).length){
+    lines.push('\n---\n\n## Lore\n');
+    P.lore.forEach(l=>{
+      lines.push(`\n### ${l.name || 'Lore'}\n`);
+      if(l.type) lines.push(`*${l.type}*\n`);
+      if(l.short) lines.push('\n' + l.short + '\n');
+      (l.sections||[]).forEach(s=>{
+        if(s.title || s.content) lines.push(`\n**${s.title || 'Sección'}**\n\n${htmlToMd(s.content||'')}\n`);
+      });
+    });
+  }
+  if(opts.world && (P.world||[]).length){
+    lines.push('\n---\n\n## Mundo\n');
+    function walkZones(arr, depth){
+      arr.forEach(z=>{
+        const h = '#'.repeat(Math.min(4, depth+3));
+        lines.push(`\n${h} ${ZONE_ICON[z.type]||''} ${z.name || 'Zona'}\n`);
+        if(z.location) lines.push(`\n*Ubicación: ${z.location}*\n`);
+        if(z.desc) lines.push('\n' + htmlToMd(z.desc) + '\n');
+        if(z.children && z.children.length) walkZones(z.children, depth+1);
+      });
+    }
+    walkZones(P.world, 0);
+  }
+  if(opts.notes && (P.notes||[]).length){
+    lines.push('\n---\n\n## Notas\n');
+    P.notes.forEach(n=>{
+      lines.push(`\n### ${n.title || 'Nota'}\n\n${htmlToMd(n.content||'')}\n`);
+    });
+  }
+  if(opts.ideas && (P.story.ideas||[]).length){
+    lines.push('\n---\n\n## Ideas\n');
+    P.story.ideas.forEach(i=>{
+      lines.push(`\n### ${i.title || 'Idea'}\n`);
+      const meta = [];
+      if(i.type) meta.push(`*${i.type}*`);
+      if(i.status) meta.push(`Estado: ${i.status}`);
+      if(meta.length) lines.push('\n' + meta.join(' · ') + '\n');
+      if(i.content) lines.push('\n' + htmlToMd(i.content) + '\n');
+    });
+  }
+  return lines.join('\n');
+}
+function buildManuscriptHTML(opts){
+  const title = esc(P.name || 'Proyecto');
+  const body = [];
+  body.push(`<h1>${title}</h1>`);
+  if(P.description) body.push(`<div class="desc">${P.description}</div>`);
+  if(P.genres && P.genres.length) body.push(`<p class="genres"><em>${esc(P.genres.join(' · '))}</em></p>`);
+
+  const acts = P.story.acts || [];
+  const chapters = P.story.chapters || [];
+  const used = new Set();
+  function renderChapter(c){
+    const out = [];
+    out.push(`<h2>${esc(c.title || 'Capítulo sin título')}</h2>`);
+    if(c.season || c.start || c.end){
+      const m = [c.season, c.start ? `${c.start}${c.end ? ' – ' + c.end : ''}` : ''].filter(Boolean).join(' · ');
+      out.push(`<p class="meta"><em>${esc(m)}</em></p>`);
+    }
+    out.push(`<div class="content">${c.content||''}</div>`);
+    return out.join('\n');
+  }
+  if(acts.length){
+    acts.forEach(a=>{
+      const cs = chapters.filter(c=>c.actId === a.id);
+      if(!cs.length) return;
+      body.push(`<h1 class="act">${esc(a.name||'Acto')}</h1>`);
+      if(a.description) body.push(`<div class="content">${a.description}</div>`);
+      cs.forEach(c=>{ body.push(renderChapter(c)); used.add(c.id); });
+    });
+  }
+  chapters.filter(c=>!used.has(c.id)).forEach(c=> body.push(renderChapter(c)));
+
+  if(opts.chars && (P.characters||[]).length){
+    body.push('<h1 class="section">Personajes</h1>');
+    P.characters.forEach(c=>{
+      body.push(`<h2>${esc(c.name||'Personaje')}</h2>`);
+      const info = [];
+      if(c.nickname) info.push(`"${c.nickname}"`);
+      if(c.age) info.push(`Edad: ${c.age}`);
+      if(c.gender) info.push(`Género: ${c.gender}`);
+      if(c.roll) info.push(c.roll);
+      if(c.storyRole) info.push(c.storyRole);
+      if(info.length) body.push(`<p><em>${esc(info.join(' · '))}</em></p>`);
+      if(c.image) body.push(`<p><img src="${esc(c.image)}" class="sheet-img"></p>`);
+      if(c.short) body.push(`<p>${esc(c.short)}</p>`);
+      if(c.history) body.push(`<div class="content">${c.history}</div>`);
+      (c.sections||[]).forEach(s=>{
+        if(s.title) body.push(`<h3>${esc(s.title)}</h3>`);
+        if(s.content) body.push(`<div class="content">${s.content}</div>`);
+      });
+    });
+  }
+  if(opts.bestiary && (P.bestiary||[]).length){
+    body.push('<h1 class="section">Bestiario</h1>');
+    P.bestiary.forEach(b=>{
+      body.push(`<h2>${esc(b.name||'Bestia')}</h2>`);
+      const info = [];
+      if(b.species) info.push(`Especie: ${b.species}`);
+      if(b.personality) info.push(b.personality);
+      if(b.danger) info.push(`Peligro: ${b.danger}`);
+      if(info.length) body.push(`<p><em>${esc(info.join(' · '))}</em></p>`);
+      if(b.image) body.push(`<p><img src="${esc(b.image)}" class="sheet-img"></p>`);
+      if(b.short) body.push(`<p>${esc(b.short)}</p>`);
+      (b.sections||[]).forEach(s=>{
+        if(s.title) body.push(`<h3>${esc(s.title)}</h3>`);
+        if(s.content) body.push(`<div class="content">${s.content}</div>`);
+      });
+    });
+  }
+  if(opts.races && (P.races||[]).length){
+    body.push('<h1 class="section">Razas</h1>');
+    P.races.forEach(r=>{
+      body.push(`<h2>${esc(r.name||'Raza')}</h2>`);
+      if(r.image) body.push(`<p><img src="${esc(r.image)}" class="sheet-img"></p>`);
+      const info = [];
+      if(r.classification) info.push(`Clasificación: ${r.classification}`);
+      if(r.lifespan) info.push(`Vida: ${r.lifespan}`);
+      if(info.length) body.push(`<p><em>${esc(info.join(' · '))}</em></p>`);
+      if(r.short) body.push(`<p>${esc(r.short)}</p>`);
+      (r.sections||[]).forEach(s=>{
+        if(s.title) body.push(`<h3>${esc(s.title)}</h3>`);
+        if(s.content) body.push(`<div class="content">${s.content}</div>`);
+      });
+    });
+  }
+  if(opts.lore && (P.lore||[]).length){
+    body.push('<h1 class="section">Lore</h1>');
+    P.lore.forEach(l=>{
+      body.push(`<h2>${esc(l.name||'Lore')}</h2>`);
+      if(l.type) body.push(`<p><em>${esc(l.type)}</em></p>`);
+      if(l.image) body.push(`<p><img src="${esc(l.image)}" class="sheet-img"></p>`);
+      if(l.short) body.push(`<p>${esc(l.short)}</p>`);
+      (l.sections||[]).forEach(s=>{
+        if(s.title) body.push(`<h3>${esc(s.title)}</h3>`);
+        if(s.content) body.push(`<div class="content">${s.content}</div>`);
+      });
+    });
+  }
+  if(opts.world && (P.world||[]).length){
+    body.push('<h1 class="section">Mundo</h1>');
+    function walkZ(arr, depth){
+      arr.forEach(z=>{
+        const h = Math.min(4, depth+2);
+        body.push(`<h${h}>${esc(z.name||'Zona')}</h${h}>`);
+        if(z.location) body.push(`<p><em>Ubicación: ${esc(z.location)}</em></p>`);
+        if(z.desc) body.push(`<div class="content">${z.desc}</div>`);
+        if(z.children && z.children.length) walkZ(z.children, depth+1);
+      });
+    }
+    walkZ(P.world, 0);
+  }
+  if(opts.notes && (P.notes||[]).length){
+    body.push('<h1 class="section">Notas</h1>');
+    P.notes.forEach(n=>{
+      body.push(`<h2>${esc(n.title||'Nota')}</h2>`);
+      if(n.content) body.push(`<div class="content">${n.content}</div>`);
+    });
+  }
+  if(opts.ideas && (P.story.ideas||[]).length){
+    body.push('<h1 class="section">Ideas</h1>');
+    P.story.ideas.forEach(i=>{
+      body.push(`<h2>${esc(i.title||'Idea')}</h2>`);
+      const meta = [i.type, i.status].filter(Boolean).join(' · ');
+      if(meta) body.push(`<p><em>${esc(meta)}</em></p>`);
+      if(i.content) body.push(`<div class="content">${i.content}</div>`);
+    });
+  }
+
+  return `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<style>
+  body{ max-width:780px; margin:40px auto; padding:20px; font-family: Georgia, serif; line-height:1.7; color:#2b241a; background:#fdfaf3; }
+  h1{ font-size:2em; border-bottom:2px solid #c9a227; padding-bottom:.2em; }
+  h1.act{ font-size:1.6em; color:#8a6f1c; border:none; margin-top:2em; }
+  h1.section{ font-size:1.8em; margin-top:2.5em; color:#8a6f1c; }
+  h2{ font-size:1.35em; margin-top:1.6em; }
+  h3{ font-size:1.15em; }
+  blockquote{ border-left:3px solid #c9a227; padding-left:14px; color:#555; font-style:italic; }
+  img{ max-width:100%; height:auto; }
+  .meta, em{ color:#666; }
+  .content{ margin-bottom:1em; }
+  .genres{ text-align:center; }
+  .desc{ font-style:italic; color:#555; margin-bottom:2em; }
+  .sheet-img{ max-width:260px; border-radius:4px; }
+  @media(max-width:600px){ body{ margin:10px auto; padding:12px; } }
+  @media print {
+    body{ max-width:none; margin:0; padding:0; background:#fff; }
+    h1{ page-break-before: always; }
+    h1:first-of-type{ page-break-before: avoid; }
+    h2{ page-break-after: avoid; }
+  }
+</style>
+</head><body>
+${body.join('\n')}
+</body></html>`;
+}
+function buildManuscriptDoc(opts){
+  const full = buildManuscriptHTML(opts);
+  const m = full.match(/<style>([\s\S]*?)<\/style>/);
+  const style = m ? m[1] : '';
+  const bm = full.match(/<body>([\s\S]*)<\/body>/);
+  const inner = bm ? bm[1] : '';
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${esc(P.name||'Proyecto')}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+<style>${style}</style>
+</head><body>${inner}</body></html>`;
+}
+function openPrintableManuscript(opts){
+  const html = buildManuscriptHTML(opts);
+  const w = window.open('', '_blank');
+  if(!w){ toast('Ventana bloqueada por el navegador'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 400);
+}
+function doExport(fmt, opts){
+  const safeName = (P.name || 'proyecto').replace(/[^\w\-]+/g,'_');
+  if(fmt === 'json'){
+    const data = JSON.stringify({ codex:true, version:2, project:P }, null, 2);
+    downloadFile(data, safeName + '.codex.json', 'application/json');
+    toast('Proyecto exportado ✓');
+    return;
+  }
+  if(fmt === 'md'){
+    downloadFile(buildManuscriptMarkdown(opts), safeName + '.md', 'text/markdown');
+    toast('Markdown exportado ✓');
+  } else if(fmt === 'txt'){
+    downloadFile(mdToPlain(buildManuscriptMarkdown(opts)), safeName + '.txt', 'text/plain');
+    toast('Texto exportado ✓');
+  } else if(fmt === 'html'){
+    downloadFile(buildManuscriptHTML(opts), safeName + '.html', 'text/html');
+    toast('HTML exportado ✓');
+  } else if(fmt === 'doc'){
+    downloadFile(buildManuscriptDoc(opts), safeName + '.doc', 'application/msword');
+    toast('Word exportado ✓');
+  } else if(fmt === 'pdf'){
+    openPrintableManuscript(opts);
+    toast('Elige "Guardar como PDF"');
+  }
+}
+function openExportModal(){
+  if(!P){ toast('No hay proyecto abierto'); return; }
+  openModal(`<h3>📤 Exportar</h3>
+    <p class="hint">Elige el formato.</p>
+    <div class="format-grid">
+      <div class="fmt-card" data-fmt="json"><div class="fc-icon">🗄</div><div class="fc-label">JSON</div></div>
+      <div class="fmt-card" data-fmt="html"><div class="fc-icon">🌐</div><div class="fc-label">HTML</div></div>
+      <div class="fmt-card" data-fmt="md"><div class="fc-icon">📝</div><div class="fc-label">Markdown</div></div>
+      <div class="fmt-card" data-fmt="doc"><div class="fc-icon">📘</div><div class="fc-label">Word</div></div>
+      <div class="fmt-card" data-fmt="txt"><div class="fc-icon">📄</div><div class="fc-label">Texto</div></div>
+      <div class="fmt-card" data-fmt="pdf"><div class="fc-icon">🖨</div><div class="fc-label">PDF</div></div>
+    </div>
+    <div data-extra style="display:none">
+      <div class="section-toggle-group-title">Incluir además</div>
+      <label class="section-toggle-row"><input type="checkbox" data-inc-chars><span class="stg-name">🧝 Fichas de personajes</span></label>
+      <label class="section-toggle-row"><input type="checkbox" data-inc-world><span class="stg-name">🌍 Mundos y zonas</span></label>
+      <label class="section-toggle-row"><input type="checkbox" data-inc-bestiary><span class="stg-name">🐉 Bestiario</span></label>
+      <label class="section-toggle-row"><input type="checkbox" data-inc-races><span class="stg-name">🧬 Razas</span></label>
+      <label class="section-toggle-row"><input type="checkbox" data-inc-lore><span class="stg-name">📚 Lore</span></label>
+      <label class="section-toggle-row"><input type="checkbox" data-inc-notes><span class="stg-name">📝 Notas</span></label>
+      <label class="section-toggle-row"><input type="checkbox" data-inc-ideas checked><span class="stg-name">💡 Ideas</span></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" data-no>Cancelar</button>
+      <button class="btn primary" data-go>Exportar</button>
+    </div>`,
+    m=>{
+      m.classList.add('export-modal');
+      let currentFmt = 'json';
+      const extra = m.querySelector('[data-extra]');
+      const updateExtra = ()=>{ extra.style.display = currentFmt === 'json' ? 'none' : ''; };
+      updateExtra();
+      m.querySelectorAll('.fmt-card').forEach(c=>{
+        c.onclick = ()=>{
+          m.querySelectorAll('.fmt-card').forEach(x=>x.classList.remove('active'));
+          c.classList.add('active');
+          currentFmt = c.dataset.fmt;
+          updateExtra();
+        };
+      });
+      m.querySelector('[data-fmt="json"]').classList.add('active');
+      m.querySelector('[data-no]').onclick = closeModal;
+      m.querySelector('[data-go]').onclick = ()=>{
+        const opts = {
+          chars: m.querySelector('[data-inc-chars]').checked,
+          world: m.querySelector('[data-inc-world]').checked,
+          bestiary: m.querySelector('[data-inc-bestiary]').checked,
+          races: m.querySelector('[data-inc-races]').checked,
+          lore: m.querySelector('[data-inc-lore]').checked,
+          notes: m.querySelector('[data-inc-notes]').checked,
+          ideas: m.querySelector('[data-inc-ideas]').checked
+        };
+        closeModal();
+        doExport(currentFmt, opts);
+      };
+    });
+}
+
+/* ============================================================
+   10.1 TOPBAR
 ============================================================ */
 $('#btnLibrary').onclick = ()=>{ view = 'library'; render(); };
 $('#btnNew').onclick = crearProyecto;
-
-$('#btnExport').onclick = ()=>{
-  if(!P){ toast('No hay proyecto abierto'); return; }
-  const data = JSON.stringify({ codex:true, version:2, project:P }, null, 2);
-  const blob = new Blob([data], { type:'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = (P.name || 'proyecto').replace(/[^\w\-]+/g,'_') + '.codex.json';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-  toast('Proyecto exportado ✓');
-};
+$('#btnExport').onclick = ()=> openExportModal();
 
 $('#btnImport').onclick = ()=> $('#fileImport').click();
 $('#fileImport').onchange = e=>{
@@ -6737,6 +7472,11 @@ function init(){
   render();
   setSaveState(P ? 'Guardado ✓' : '');
   if(DB.projects.length) saveDB();
+
+  // Cerrar sidebar al cambiar de tamaño a escritorio
+  window.addEventListener('resize', ()=>{
+    if(window.innerWidth > 820) closeSidebarMobile();
+  });
 }
 
 window.addEventListener('beforeunload', ()=>{ if(P) saveDB(); });
