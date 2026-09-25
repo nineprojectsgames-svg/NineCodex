@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f0c09">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Codex">
+<link rel="manifest" id="webManifest" href="">
+<link rel="apple-touch-icon" id="appleIcon" href="">
+<link rel="icon" id="favIcon" href="">
 <title>Codex — Creador de Historias</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -45,6 +52,9 @@ body{
 #topProjName{flex:1;text-align:center;color:var(--ink-dim);font-style:italic;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px}
 .top-actions{display:flex;gap:6px;align-items:center}
+.top-more-toggle{ display:none; }
+.top-more-drop{ display:contents; }
+#btnInstallApp{ display:none; }
 .savestate{font-size:12px;color:var(--muted);min-width:78px;text-align:right;font-style:italic}
 
 .btn{
@@ -383,6 +393,7 @@ select{cursor:pointer}
   max-width:calc(100% - 24px);
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
+.toast button{ pointer-events:auto; }
 
 .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:14px}
 .stat{
@@ -487,6 +498,23 @@ select{cursor:pointer}
 .btn-collapse{ font-size:15px; padding:6px 10px; }
 .sidebar-overlay{ display:none; position:fixed; inset:var(--topbar-h) 0 0 0; background:#000000a0; z-index:60; }
 .sidebar-overlay.show{ display:block; }
+
+/* ---------- BARRA DE NAVEGACIÓN INFERIOR (solo móvil) ---------- */
+.bottom-nav{
+  display:none; position:fixed; left:0; right:0; bottom:0; z-index:55;
+  background:linear-gradient(var(--paper2),var(--bg2)); border-top:1px solid var(--line);
+  box-shadow:0 -2px 14px #000a;
+  padding:4px 2px calc(4px + env(safe-area-inset-bottom,0px));
+}
+.bn-item{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  background:none; border:none; color:var(--ink-dim); font-family:inherit;
+  padding:6px 2px 5px; margin:0; cursor:pointer; border-radius:6px;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+.bn-item.active{ color:var(--gold); }
+.bn-item .bn-ic{ font-size:19px; line-height:1; }
+.bn-item .bn-lbl{ font-size:10px; letter-spacing:.2px; white-space:nowrap; }
 
 .filter-panel{
   display:none;
@@ -703,12 +731,23 @@ select{cursor:pointer}
   #topProjName{ display:none; }
   .savestate{ display:none; }
   .top-actions{
-    flex:1; gap:4px; overflow-x:auto; -webkit-overflow-scrolling:touch;
-    scrollbar-width:none; justify-content:flex-end;
+    display:flex; gap:4px; align-items:center; position:relative;
   }
-  .top-actions::-webkit-scrollbar{ display:none; }
-  .top-actions .btn{ padding:6px 9px; font-size:12px; flex:0 0 auto; }
-  .top-actions .btn.primary{ padding:6px 10px; }
+  .top-more-toggle{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:6px 10px; font-size:17px;
+  }
+  .top-more-drop{
+    display:none; position:fixed; top:var(--topbar-h); right:8px; z-index:70;
+    flex-direction:column; gap:4px; min-width:170px; padding:6px;
+    background:linear-gradient(var(--paper2),var(--bg2)); border:1px solid var(--line2);
+    border-radius:0 0 10px 10px; box-shadow:0 14px 30px #000c;
+  }
+  .top-more-drop.show{ display:flex; }
+  .top-more-drop .btn{ width:100%; text-align:left; padding:9px 10px; font-size:13px; }
+
+  /* ---------- BARRA DE NAVEGACIÓN INFERIOR ---------- */
+  .bottom-nav{ display:flex; }
 
   /* ---------- LAYOUT ---------- */
   .layout{ height:calc(100dvh - var(--topbar-h)); }
@@ -957,10 +996,14 @@ select{cursor:pointer}
   <div class="top-actions">
     <button class="btn ghost" id="btnSearch" title="Buscar en el proyecto (Ctrl+K)" aria-label="Buscar">🔍</button>
     <span class="savestate" id="saveState"></span>
-    <button class="btn" id="btnLibrary">Biblioteca</button>
-    <button class="btn" id="btnExport">Exportar</button>
-    <button class="btn" id="btnImport">Importar</button>
-    <button class="btn primary" id="btnNew">+ Proyecto</button>
+    <button class="btn ghost top-more-toggle" id="btnTopMore" title="Más opciones" aria-label="Más opciones">⋮</button>
+    <div class="top-more-drop" id="topMoreDrop">
+      <button class="btn" id="btnInstallApp">📲 Instalar app</button>
+      <button class="btn" id="btnLibrary">Biblioteca</button>
+      <button class="btn" id="btnExport">Exportar</button>
+      <button class="btn" id="btnImport">Importar</button>
+      <button class="btn primary" id="btnNew">+ Proyecto</button>
+    </div>
   </div>
 </header>
 
@@ -969,6 +1012,14 @@ select{cursor:pointer}
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <main class="main" id="main"></main>
 </div>
+
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bn-item" data-bn="home"><span class="bn-ic">🏠</span><span class="bn-lbl">Inicio</span></button>
+  <button class="bn-item" data-bn="characters"><span class="bn-ic">🧝</span><span class="bn-lbl">Personajes</span></button>
+  <button class="bn-item" data-bn="chapters"><span class="bn-ic">📜</span><span class="bn-lbl">Capítulos</span></button>
+  <button class="bn-item" data-bn="world"><span class="bn-ic">🌍</span><span class="bn-lbl">Mundo</span></button>
+  <button class="bn-item" data-bn="menu"><span class="bn-ic">☰</span><span class="bn-lbl">Más</span></button>
+</nav>
 
 <div class="lightbox-back" id="lightboxBack">
   <img class="lightbox-img" id="lightboxImg" alt="">
@@ -1168,6 +1219,7 @@ function mdToPlain(md){
    2. ESTADO
 ============================================================ */
 const LS_KEY = 'codex_db_v1';
+const LS_BACKUP_KEY = 'codex_db_v1_backup_before_cloud_merge';
 let DB = { projects: [], currentId: null };
 let P  = null;
 let view = 'library';
@@ -1178,6 +1230,7 @@ let clipboard = null;
 let saveTimer = null;
 let savedRange = null;
 let cloudSyncing = false;
+let cloudSyncPending = false;
 
 const ui = {
   chapters:   { q:'', sort:'custom', sel:[] },
@@ -1504,6 +1557,33 @@ function migrateProject(p){
 function toast(msg){
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 2300);
+}
+function toastUndo(msg, actionLabel, onAction, duration){
+  const t = $('#toast');
+  t.innerHTML = `<span>${esc(msg)}</span> <button class="btn small">${esc(actionLabel)}</button>`;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  let used = false;
+  t.querySelector('button').onclick = ()=>{
+    if(used) return; used = true;
+    t.classList.remove('show');
+    onAction();
+  };
+  t._t = setTimeout(()=>{ t.classList.remove('show'); }, duration || 6000);
+}
+/* Borra `item` del array `arr` y ofrece deshacer por unos segundos.
+   onChange('delete'|'restore') se llama para refrescar selección/listas. */
+function deleteWithUndo(arr, item, label, onChange){
+  const idx = arr.indexOf(item);
+  if(idx < 0) return;
+  arr.splice(idx, 1);
+  touch();
+  onChange && onChange('delete');
+  toastUndo(`🗑 "${label}" eliminado`, 'Deshacer', ()=>{
+    arr.splice(Math.min(idx, arr.length), 0, item);
+    touch();
+    onChange && onChange('restore');
+  });
 }
 function openModal(html, onMount){
   const back = $('#modalBack'), m = $('#modal');
@@ -2035,6 +2115,35 @@ function closeSidebarMobile(){ $('#sidebar').classList.remove('open'); $('#sideb
 $('#btnHamb').onclick = ()=> $('#sidebar').classList.contains('open') ? closeSidebarMobile() : openSidebarMobile();
 $('#sidebarOverlay').onclick = closeSidebarMobile;
 
+/* ---------- Menú "⋮" del topbar (colapsa Biblioteca/Exportar/Importar/+Proyecto en móvil) ---------- */
+function closeTopMore(){ $('#topMoreDrop').classList.remove('show'); }
+$('#btnTopMore').onclick = (e)=>{ e.stopPropagation(); $('#topMoreDrop').classList.toggle('show'); };
+$('#topMoreDrop').addEventListener('click', e=>{ if(e.target.closest('button')) setTimeout(closeTopMore, 50); });
+document.addEventListener('click', e=>{
+  const drop = $('#topMoreDrop');
+  if(drop.classList.contains('show') && !drop.contains(e.target) && e.target.id !== 'btnTopMore'){
+    closeTopMore();
+  }
+});
+
+/* ---------- Barra de navegación inferior (móvil) ---------- */
+function renderBottomNav(){
+  const nav = $('#bottomNav');
+  if(!nav) return;
+  nav.style.display = P ? '' : 'none';
+  if(!P) return;
+  $$('.bn-item', nav).forEach(b=>{
+    b.classList.toggle('active', b.dataset.bn !== 'menu' && view === b.dataset.bn);
+  });
+}
+$$('.bn-item').forEach(b=>{
+  b.onclick = ()=>{
+    const id = b.dataset.bn;
+    if(id === 'menu'){ openSidebarMobile(); return; }
+    view = id; render(); $('#main').scrollTop = 0;
+  };
+});
+
 const SIDEBAR_HIDDEN_KEY = 'codex_sidebar_hidden';
 if(localStorage.getItem(SIDEBAR_HIDDEN_KEY) === '1') document.body.classList.add('sidebar-hidden');
 $('#btnCollapseSidebar').onclick = ()=>{
@@ -2057,6 +2166,7 @@ document.addEventListener('keydown', e=>{
     if(fs){ fs.classList.remove('editor-fullscreen'); const btn = fs.querySelector('[data-fullscreen]'); if(btn){ btn.textContent='⛶'; } document.body.style.overflow=''; return; }
     if($('#cmdkBack').classList.contains('show')){ closeCmdk(); return; }
     if($('#modalBack').classList.contains('show')){ closeModal(); return; }
+    if($('#topMoreDrop').classList.contains('show')){ closeTopMore(); return; }
     if($('#sidebar').classList.contains('open')){ closeSidebarMobile(); return; }
   }
 });
@@ -2909,8 +3019,10 @@ function viewChapters(){
         }},
       {label:'🗑 Borrar', cls:'danger', onClick: async ()=>{
           if(await pedirBorrado(c.title||'este capítulo')){
-            P.story.chapters = P.story.chapters.filter(x=>x.id!==c.id);
-            sel.chapters = null; touch(); drawList(); drawDetail();
+            deleteWithUndo(P.story.chapters, c, c.title||'este capítulo', (action)=>{
+              sel.chapters = action==='restore' ? c.id : null;
+              drawList(); drawDetail();
+            });
           }
         }}
     ], 'Título del capítulo'));
@@ -3176,8 +3288,10 @@ function viewEvents(){
         }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
           if(await pedirBorrado(e.title||'este evento')){
-            P.story.events = P.story.events.filter(x=>x.id!==e.id);
-            sel.events = null; touch(); drawList(); drawDetail();
+            deleteWithUndo(P.story.events, e, e.title||'este evento', (action)=>{
+              sel.events = action==='restore' ? e.id : null;
+              drawList(); drawDetail();
+            });
           }
         }}
     ], 'Título del evento'));
@@ -3443,9 +3557,11 @@ function viewTimeline(){
       {label:'🗑', cls:'danger', onClick: async ()=>{
         if(P.story.timelines.length === 1){ toast('Debe quedar al menos una'); return; }
         if(await pedirBorrado(T.name || 'esta cronología')){
-          P.story.timelines = P.story.timelines.filter(x => x.id !== T.id);
-          T = P.story.timelines[0]; ensureTimeline(T);
-          ui.timeline.sel = T.id; touch(); drawList(); drawDetail();
+          const delT = T;
+          deleteWithUndo(P.story.timelines, delT, delT.name||'esta cronología', (action)=>{
+            if(action==='restore'){ T = delT; } else { T = P.story.timelines[0]; ensureTimeline(T); }
+            ui.timeline.sel = T.id; drawList(); drawDetail();
+          });
         }
       }}
     ], 'Nombre de la cronología'));
@@ -3940,9 +4056,11 @@ function viewIdeas(){
         }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
           if(await pedirBorrado(it.title||'esta idea')){
-            P.story.ideas = P.story.ideas.filter(x=>x.id!==it.id);
-            ui.ideas.sel = ui.ideas.sel.filter(x=>x!==it.id);
-            sel.ideas = null; touch(); ctrl.drawList(); drawDetail();
+            deleteWithUndo(P.story.ideas, it, it.title||'esta idea', (action)=>{
+              ui.ideas.sel = ui.ideas.sel.filter(x=>x!==it.id);
+              sel.ideas = action==='restore' ? it.id : null;
+              ctrl.drawList(); drawDetail();
+            });
           }
         }}
     ], 'Título'));
@@ -4479,6 +4597,20 @@ function viewCharacters(){
         }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
           if(await pedirBorrado(c.name||'este personaje')){
+            const idx = P.characters.indexOf(c);
+            const netCascade = (P.charnets||[]).map(net=>({
+              net,
+              wasMember: (net.members||[]).includes(c.id),
+              relations: (net.relations||[]).filter(r=>r.a===c.id || r.b===c.id),
+              position: net.positions ? net.positions[c.id] : undefined
+            })).filter(x=>x.wasMember || x.relations.length || x.position);
+            const genCascade = (P.genealogies||[]).map(g=>({
+              g,
+              wasMember: (g.members||[]).includes(c.id),
+              relations: (g.relations||[]).filter(r=>r.a===c.id || r.b===c.id),
+              position: g.positions ? g.positions[c.id] : undefined
+            })).filter(x=>x.wasMember || x.relations.length || x.position);
+
             P.characters = P.characters.filter(x=>x.id!==c.id);
             (P.charnets||[]).forEach(net=>{
               net.members = (net.members||[]).filter(id=>id!==c.id);
@@ -4492,6 +4624,21 @@ function viewCharacters(){
             });
             ui.characters.sel = ui.characters.sel.filter(x=>x!==c.id);
             sel.characters = null; touch(); drawList(); drawDetail();
+
+            toastUndo(`🗑 "${c.name||'Personaje'}" eliminado`, 'Deshacer', ()=>{
+              P.characters.splice(Math.min(idx, P.characters.length), 0, c);
+              netCascade.forEach(({net, wasMember, relations, position})=>{
+                if(wasMember && !(net.members||[]).includes(c.id)) net.members = [...(net.members||[]), c.id];
+                if(relations.length) net.relations = [...(net.relations||[]), ...relations];
+                if(position){ net.positions = net.positions || {}; net.positions[c.id] = position; }
+              });
+              genCascade.forEach(({g, wasMember, relations, position})=>{
+                if(wasMember && !(g.members||[]).includes(c.id)) g.members = [...(g.members||[]), c.id];
+                if(relations.length) g.relations = [...(g.relations||[]), ...relations];
+                if(position){ g.positions = g.positions || {}; g.positions[c.id] = position; }
+              });
+              sel.characters = c.id; touch(); drawList(); drawDetail();
+            });
           }
         }}
     ], 'Nombre del personaje'));
@@ -4743,9 +4890,10 @@ function viewCharNet(){
       }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
         if(await pedirBorrado(net.name||'esta red')){
-          P.charnets = P.charnets.filter(x=>x.id!==net.id);
-          ui.charnet.sel = P.charnets[0] ? P.charnets[0].id : null;
-          touch(); drawList(); drawDetail();
+          deleteWithUndo(P.charnets, net, net.name||'esta red', (action)=>{
+            ui.charnet.sel = action==='restore' ? net.id : (P.charnets[0] ? P.charnets[0].id : null);
+            drawList(); drawDetail();
+          });
         }
       }}
     ], 'Nombre de la red'));
@@ -5390,9 +5538,10 @@ function viewGenealogy(){
       }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
         if(await pedirBorrado(g.name||'esta genealogía')){
-          P.genealogies = P.genealogies.filter(x=>x.id!==g.id);
-          ui.genealogy.sel = P.genealogies[0] ? P.genealogies[0].id : null;
-          touch(); drawList(); drawDetail();
+          deleteWithUndo(P.genealogies, g, g.name||'esta genealogía', (action)=>{
+            ui.genealogy.sel = action==='restore' ? g.id : (P.genealogies[0] ? P.genealogies[0].id : null);
+            drawList(); drawDetail();
+          });
         }
       }}
     ], 'Nombre de la genealogía'));
@@ -5844,9 +5993,10 @@ function viewHeights(){
       }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
         if(await pedirBorrado(g.name||'este grupo')){
-          P.heightGroups = P.heightGroups.filter(x=>x.id!==g.id);
-          ui.heights.sel = P.heightGroups[0] ? P.heightGroups[0].id : null;
-          touch(); drawList(); drawDetail();
+          deleteWithUndo(P.heightGroups, g, g.name||'este grupo', (action)=>{
+            ui.heights.sel = action==='restore' ? g.id : (P.heightGroups[0] ? P.heightGroups[0].id : null);
+            drawList(); drawDetail();
+          });
         }
       }}
     ], 'Nombre del grupo'));
@@ -6046,9 +6196,11 @@ function viewBestiary(){
       }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
         if(await pedirBorrado(b.name||'esta bestia')){
-          P.bestiary = P.bestiary.filter(x=>x.id!==b.id);
-          ui.bestiary.sel = ui.bestiary.sel.filter(x=>x!==b.id);
-          sel.bestiary = null; touch(); ctrl.drawList(); drawDetail();
+          deleteWithUndo(P.bestiary, b, b.name||'esta bestia', (action)=>{
+            ui.bestiary.sel = ui.bestiary.sel.filter(x=>x!==b.id);
+            sel.bestiary = action==='restore' ? b.id : null;
+            ctrl.drawList(); drawDetail();
+          });
         }
       }}
     ], 'Nombre de la bestia'));
@@ -6200,9 +6352,11 @@ function viewRaces(){
       }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
         if(await pedirBorrado(r.name||'esta raza')){
-          P.races = P.races.filter(x=>x.id!==r.id);
-          ui.races.sel = ui.races.sel.filter(x=>x!==r.id);
-          sel.races = null; touch(); ctrl.drawList(); drawDetail();
+          deleteWithUndo(P.races, r, r.name||'esta raza', (action)=>{
+            ui.races.sel = ui.races.sel.filter(x=>x!==r.id);
+            sel.races = action==='restore' ? r.id : null;
+            ctrl.drawList(); drawDetail();
+          });
         }
       }}
     ], 'Nombre de la raza'));
@@ -6361,8 +6515,10 @@ function viewWorld(){
       {label:'🗑', cls:'danger', onClick: async ()=>{
           if(await pedirBorrado(z.name||'esta zona')){
             const info = findZoneParent(z.id);
-            info.list.splice(info.list.indexOf(z),1);
-            worldSel = null; touch(); render();
+            deleteWithUndo(info.list, z, z.name||'esta zona', (action)=>{
+              worldSel = action==='restore' ? z.id : null;
+              render();
+            });
           }
         }}
     ], 'Nombre de la zona'));
@@ -6691,9 +6847,11 @@ function viewLore(){
       }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
         if(await pedirBorrado(l.name||'esta entrada')){
-          P.lore = P.lore.filter(x=>x.id!==l.id);
-          ui.lore.sel = ui.lore.sel.filter(x=>x!==l.id);
-          sel.lore = null; touch(); ctrl.drawList(); drawDetail();
+          deleteWithUndo(P.lore, l, l.name||'esta entrada', (action)=>{
+            ui.lore.sel = ui.lore.sel.filter(x=>x!==l.id);
+            sel.lore = action==='restore' ? l.id : null;
+            ctrl.drawList(); drawDetail();
+          });
         }
       }}
     ], 'Título'));
@@ -6810,9 +6968,11 @@ function viewNotes(){
         }},
       {label:'🗑', cls:'danger', onClick: async ()=>{
           if(await pedirBorrado(n.title||'esta nota')){
-            P.notes = P.notes.filter(x=>x.id!==n.id);
-            ui.notes.sel = ui.notes.sel.filter(x=>x!==n.id);
-            sel.notes = null; touch(); ctrl.drawList(); drawDetail();
+            deleteWithUndo(P.notes, n, n.title||'esta nota', (action)=>{
+              ui.notes.sel = ui.notes.sel.filter(x=>x!==n.id);
+              sel.notes = action==='restore' ? n.id : null;
+              ctrl.drawList(); drawDetail();
+            });
           }
         }}
     ], 'Título de la nota'));
@@ -6912,6 +7072,10 @@ function viewSettings(){
         <label>Exportar proyecto</label>
         <button class="btn" data-export>Exportar</button>
       </div>
+      <div class="settings-row">
+        <label>Copia de seguridad local</label>
+        <button class="btn" data-restore-backup>🛟 Ver / restaurar</button>
+      </div>
     </div>
   </div>`);
 
@@ -6940,6 +7104,7 @@ function viewSettings(){
   w.querySelector('[data-font]').onchange = e => { P.settings.bodyFont = e.target.value; applyTheme(); touch(); };
   w.querySelector('[data-reset-visual]').onclick = ()=>{ P.settings = { theme:'codex', accent:'#c9a227', bodyFont:'' }; applyTheme(); touch(); render(); };
   w.querySelector('[data-export]').onclick = ()=> openExportModal();
+  w.querySelector('[data-restore-backup]').onclick = ()=> abrirModalBackupLocal();
 
   const sectionsBox = w.querySelector('[data-sections]');
   if(sectionsBox){
@@ -7040,6 +7205,7 @@ function render(){
   if(P && view !== 'library' && !isSectionVisible(view)) view = 'home';
   $('#topProjName').textContent = P ? (P.name || 'Sin nombre') : 'Sin proyecto';
   renderSidebar();
+  renderBottomNav();
   const m = $('#main');
   m.innerHTML = '';
   const fn = VIEWS[view] || viewLibrary;
@@ -7524,7 +7690,8 @@ $('#fileImport').onchange = e=>{
 
 
 async function syncToCloud(){
-  if(!currentUser || !fbDb || cloudSyncing) return;
+  if(!currentUser || !fbDb) return;
+  if(cloudSyncing){ cloudSyncPending = true; return; }
   cloudSyncing = true;
   setSaveState('☁ Subiendo…');
   try{
@@ -7554,7 +7721,47 @@ async function syncToCloud(){
     setSaveState('⚠ Sin conexión');
   }finally{
     cloudSyncing = false;
+    if(cloudSyncPending){
+      cloudSyncPending = false;
+      syncToCloud();
+    }
   }
+}
+
+function abrirModalBackupLocal(){
+  let backup = null;
+  try{ backup = JSON.parse(localStorage.getItem(LS_BACKUP_KEY) || 'null'); }catch(e){}
+  if(!backup || !Array.isArray(backup.projects) || !backup.projects.length){
+    openModal(`<h3>🛟 Copia de seguridad local</h3>
+      <p>Todavía no hay ninguna copia guardada. Se crea automáticamente cada vez que se sincroniza con la nube, justo antes de fusionar los datos, por si algún cambio reciente quedara pisado.</p>
+      <div class="modal-actions"><button class="btn" data-close>Cerrar</button></div>`,
+      m=> m.querySelector('[data-close]').onclick = closeModal);
+    return;
+  }
+  const fecha = new Date(backup.savedAt).toLocaleString('es');
+  const rows = backup.projects.map(p=>`<li>${esc(p.name||'Sin nombre')} <span class="hint" style="margin:0">(${((p.updatedAt)?new Date(p.updatedAt).toLocaleString('es'):'sin fecha')})</span></li>`).join('');
+  openModal(`<h3>🛟 Copia de seguridad local</h3>
+    <p>Guardada el <b>${esc(fecha)}</b>, justo antes de la última fusión con la nube. Contiene ${backup.projects.length} proyecto${backup.projects.length!==1?'s':''}:</p>
+    <ul style="margin:8px 0 14px 18px;font-size:13px;color:var(--ink-dim)">${rows}</ul>
+    <p class="hint">Restaurar reemplaza TODOS tus proyectos actuales por los de esta copia. Es recomendable exportar tu proyecto actual antes, por las dudas.</p>
+    <div class="modal-actions">
+      <button class="btn" data-close>Cerrar</button>
+      <button class="btn danger" data-restore>Restaurar esta copia</button>
+    </div>`,
+    m=>{
+      m.querySelector('[data-close]').onclick = closeModal;
+      m.querySelector('[data-restore]').onclick = async ()=>{
+        if(await confirmar('¿Reemplazar todos tus proyectos actuales por los de la copia de seguridad? Esto no se puede deshacer.')){
+          DB.projects = backup.projects;
+          DB.projects.forEach(p => migrateProject(p));
+          DB.currentId = DB.projects[0] ? DB.projects[0].id : null;
+          P = DB.projects[0] || null;
+          applyTheme(); saveDB();
+          closeModal(); view = P ? 'home' : 'library'; render();
+          toast('Copia de seguridad restaurada ✓');
+        }
+      };
+    });
 }
 
 async function loadFromCloud(){
@@ -7568,6 +7775,9 @@ async function loadFromCloud(){
       if(Array.isArray(data.projects)){
         const cloudProjects = data.projects;
         const localProjects = DB.projects || [];
+        // Resguardo local antes de fusionar, por si algún proyecto local más nuevo
+        // quedara pisado por una versión de la nube con timestamp mayor.
+        try{ localStorage.setItem(LS_BACKUP_KEY, JSON.stringify({ projects: localProjects, savedAt: Date.now() })); }catch(e){}
         const merged = new Map();
         localProjects.forEach(p => merged.set(p.id, p));
         cloudProjects.forEach(p => {
@@ -8033,6 +8243,109 @@ pop.querySelector('[data-logout]').onclick = async ()=>{ pop.remove(); try{ awai
 }
 
 /* ============================================================
+   PWA — instalable como app + funcionamiento offline básico
+============================================================ */
+function generateAppIcon(size){
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createLinearGradient(0,0,size,size);
+  g.addColorStop(0, '#241d16'); g.addColorStop(1, '#0f0c09');
+  ctx.fillStyle = g; ctx.fillRect(0,0,size,size);
+  ctx.strokeStyle = '#c9a227'; ctx.lineWidth = Math.max(2, size*0.025);
+  ctx.strokeRect(ctx.lineWidth, ctx.lineWidth, size-ctx.lineWidth*2, size-ctx.lineWidth*2);
+  ctx.font = `${Math.round(size*0.54)}px serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('📖', size/2, size/2 + size*0.04);
+  return canvas.toDataURL('image/png');
+}
+
+function setupPWA(){
+  try{
+    const icon192 = generateAppIcon(192);
+    const icon512 = generateAppIcon(512);
+    const manifest = {
+      name: 'Codex — Creador de Historias',
+      short_name: 'Codex',
+      description: 'Creador de historias, personajes y mundos.',
+      start_url: location.pathname + location.search,
+      scope: location.pathname.replace(/[^/]*$/, ''),
+      display: 'standalone',
+      background_color: '#0f0c09',
+      theme_color: '#0f0c09',
+      orientation: 'any',
+      icons: [
+        { src: icon192, sizes:'192x192', type:'image/png', purpose:'any maskable' },
+        { src: icon512, sizes:'512x512', type:'image/png', purpose:'any maskable' }
+      ]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+    $('#webManifest').setAttribute('href', URL.createObjectURL(manifestBlob));
+    $('#appleIcon').setAttribute('href', icon192);
+    $('#favIcon').setAttribute('href', icon192);
+  }catch(e){ console.warn('No se pudo generar el ícono / manifest de la app:', e); }
+
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    try{
+      const swCode = `
+        const CACHE = 'codex-cache-v1';
+        self.addEventListener('install', e=>{
+          self.skipWaiting();
+          e.waitUntil(caches.open(CACHE).then(c=>c.add(self.registration.scope)).catch(()=>{}));
+        });
+        self.addEventListener('activate', e=>{ e.waitUntil(self.clients.claim()); });
+        self.addEventListener('fetch', e=>{
+          if(e.request.method !== 'GET') return;
+          e.respondWith(
+            fetch(e.request).then(res=>{
+              const clone = res.clone();
+              caches.open(CACHE).then(c=>c.put(e.request, clone)).catch(()=>{});
+              return res;
+            }).catch(()=> caches.match(e.request).then(r => r || caches.match(self.registration.scope)))
+          );
+        });
+      `;
+      const swUrl = URL.createObjectURL(new Blob([swCode], {type:'application/javascript'}));
+      navigator.serviceWorker.register(swUrl).catch(err=>console.warn('Service worker no registrado:', err));
+    }catch(e){ console.warn('Service worker no disponible:', e); }
+  }
+
+  // Botón "Instalar app" (Android / Chrome / Edge)
+  let deferredInstallPrompt = null;
+  const installBtn = $('#btnInstallApp');
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if(installBtn) installBtn.style.display = 'block';
+  });
+  if(installBtn){
+    installBtn.onclick = async ()=>{
+      closeTopMore();
+      if(!deferredInstallPrompt){ toast('Tu navegador no permite instalar desde acá. Buscá "Agregar a pantalla de inicio" en el menú del navegador.'); return; }
+      deferredInstallPrompt.prompt();
+      try{ await deferredInstallPrompt.userChoice; }catch(e){}
+      deferredInstallPrompt = null;
+      installBtn.style.display = 'none';
+    };
+  }
+  window.addEventListener('appinstalled', ()=>{
+    deferredInstallPrompt = null;
+    if(installBtn) installBtn.style.display = 'none';
+    toast('📲 Codex instalado ✓');
+  });
+
+  // Tip de instalación para iOS (no dispara beforeinstallprompt)
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  if(isIOS && !isStandalone && !localStorage.getItem('codex_ios_install_hint')){
+    setTimeout(()=>{
+      toast('💡 Tip: tocá Compartir → "Agregar a inicio" para usar Codex como app');
+      try{ localStorage.setItem('codex_ios_install_hint', '1'); }catch(e){}
+    }, 4000);
+  }
+}
+
+/* ============================================================
    ARRANQUE
 ============================================================ */
 function init(){
@@ -8065,6 +8378,7 @@ function init(){
     });
   }
   renderUserBar();
+  setupPWA();
 
   window.addEventListener('resize', ()=>{
     if(window.innerWidth > 820) closeSidebarMobile();
