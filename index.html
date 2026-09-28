@@ -1273,9 +1273,10 @@ function saveDB(){
 }
 
 function touch(){
+  if(P) pendingUploads.add(P.id);
   setSaveState('Guardando…');
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveDB, 700);
+  saveTimer = setTimeout(saveDB, 300);
 }
 
 /* ============================================================
@@ -2810,11 +2811,13 @@ function viewLibrary(){
     card.querySelector('[data-open]').onclick = ()=>{ migrateProject(p); P = p; DB.currentId = p.id; saveDB(); applyTheme(); view='home'; render(); };
     card.querySelector('[data-dup]').onclick = ()=>{
       const c = dupeItem(p); c.name = p.name + ' (copia)';
-      migrateProject(c); DB.projects.push(c); saveDB(); render(); toast('Proyecto duplicado ✓');
+      migrateProject(c); DB.projects.push(c); pendingUploads.add(c.id); saveDB(); render(); toast('Proyecto duplicado ✓');
     };
     card.querySelector('[data-del]').onclick = async ()=>{
       if(await pedirBorrado(p.name)){
         DB.projects = DB.projects.filter(x=>x.id!==p.id);
+        pendingUploads.delete(p.id);
+        pendingDeletes.add(p.id);
         if(DB.currentId === p.id){ DB.currentId = null; P = null; }
         saveDB(); render(); toast('Proyecto borrado');
       }
@@ -2833,6 +2836,7 @@ function crearProyecto(){
     if(!v || !v.n.trim()) return;
     const p = newProject(v.n.trim(), v.d.trim());
     DB.projects.push(p); DB.currentId = p.id; P = p;
+    pendingUploads.add(p.id);
     saveDB(); applyTheme(); view='home'; render(); toast('Proyecto creado ✓');
   });
 }
@@ -7685,47 +7689,251 @@ $('#fileImport').onchange = e=>{
 };
 
 /* ============================================================
-   SINCRONIZACIÓN CON FIREBASE
+   SINCRONIZACIÓN CON FIREBASE — subcolección + tiempo real
 ============================================================ */
+let pendingUploads = new Set();
+let pendingDeletes = new Set();
+let cloudListenerUnsubscribe = null;
 
+function countItems(project){
+  if(!project) return 0;
+  let n = 0;
+  n += (project.story?.chapters||[]).length;
+  n += (project.story?.acts||[]).length;
+  n += (project.story?.events||[]).length;
+  n += (project.story?.ideas||[]).length;
+  n += (project.story?.timelines||[]).length;
+  n += (project.characters||[]).length;
+  n += (project.bestiary||[]).length;
+  n += (project.races||[]).length;
+  n += (project.lore||[]).length;
+  n += (project.notes||[]).length;
+  n += (project.genealogies||[]).length;
+  n += (project.heightGroups||[]).length;
+  n += (project.charnets||[]).length;
+  (function walkZones(arr){ (arr||[]).forEach(z => { n += 1 + walkZones(z.children); }); })(project.world);
+  return n;
+}
 
 async function syncToCloud(){
   if(!currentUser || !fbDb) return;
   if(cloudSyncing){ cloudSyncPending = true; return; }
   cloudSyncing = true;
   setSaveState('☁ Subiendo…');
+  const userRef = fbDb.collection('users').doc(currentUser.uid);
   try{
-    // Calcular tamaño total antes de subir
-    const payload = {
+    // Migrar estructura vieja (array projects) → subcolección, solo una vez
+    try{
+      const userSnap = await userRef.get();
+      if(userSnap.exists){
+        const d = userSnap.data();
+        if(Array.isArray(d.projects) && d.projects.length){
+          const batch = fbDb.batch();
+          for(const proj of d.projects){
+            if(!proj || !proj.id) continue;
+            batch.set(userRef.collection('projects').doc(proj.id), proj);
+          }
+          batch.set(userRef, {
+            projects: firebase.firestore.FieldValue.delete(),
+            migratedToSubcollection: true
+          }, { merge: true });
+          await batch.commit();
+          DB.projects.forEach(p => pendingUploads.add(p.id));
+        }
+      }
+    }catch(e){ console.warn('Migración no crítica:', e); }
+
+    await userRef.set({
       email: currentUser.email,
-      projects: DB.projects,
       currentId: DB.currentId,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    const sizeKB = Math.round(JSON.stringify(payload).length / 1024);
+    }, { merge: true });
 
-    // Firestore tiene un límite de 1 MB (1024 KB) por documento
-    // Margen de seguridad: 900 KB
-    if(sizeKB > 900){
-      setSaveState('⚠ Proyecto grande');
-      toast('⚠ El proyecto pesa ' + sizeKB + ' KB (límite ~1000 KB). Comprimí imágenes o eliminá algunas.');
-      cloudSyncing = false;
-      return;
+    // Primera vez: subir todo
+    if(!pendingUploads.size && !pendingDeletes.size){
+      try{
+        const snap = await userRef.collection('projects').limit(1).get();
+        if(snap.empty && DB.projects.length){
+          DB.projects.forEach(p => pendingUploads.add(p.id));
+        }
+      }catch(e){ console.warn(e); }
     }
 
-    const ref = fbDb.collection('users').doc(currentUser.uid);
-    await ref.set(payload, { merge: true });
-    setSaveState('☁ Guardado ✓ (' + sizeKB + ' KB)');
+    // Subir modificados
+    for(const id of [...pendingUploads]){
+      const p = DB.projects.find(x => x.id === id);
+      if(!p){ pendingDeletes.add(id); pendingUploads.delete(id); continue; }
+      const sizeKB = Math.round(JSON.stringify(p).length / 1024);
+      if(sizeKB > 900){
+        toast(`⚠ "${p.name||'Proyecto'}" pesa ${sizeKB} KB y no se sincroniza.`);
+        pendingUploads.delete(id);
+        continue;
+      }
+      await userRef.collection('projects').doc(id).set(p);
+      pendingUploads.delete(id);
+    }
+
+    // Borrar eliminados
+    for(const id of [...pendingDeletes]){
+      try{ await userRef.collection('projects').doc(id).delete(); }catch(e){ console.warn(e); }
+      pendingDeletes.delete(id);
+    }
+
+    setSaveState('☁ Guardado ✓');
   }catch(e){
-    console.warn('Error subiendo a Firebase:', e);
+    console.warn('Error syncToCloud:', e);
     setSaveState('⚠ Sin conexión');
   }finally{
     cloudSyncing = false;
-    if(cloudSyncPending){
-      cloudSyncPending = false;
-      syncToCloud();
-    }
+    if(cloudSyncPending){ cloudSyncPending = false; syncToCloud(); }
   }
+}
+
+async function loadFromCloud(){
+  if(!currentUser || !fbDb) return;
+  setSaveState('☁ Descargando…');
+  const userRef = fbDb.collection('users').doc(currentUser.uid);
+  try{
+    const userSnap = await userRef.get();
+    const userMeta = userSnap.exists ? userSnap.data() : {};
+
+    const projSnap = await userRef.collection('projects').get();
+    const cloudProjects = [];
+    projSnap.forEach(doc => {
+      const data = doc.data() || {};
+      cloudProjects.push({ ...data, id: data.id || doc.id });
+    });
+
+    if(!cloudProjects.length){
+      if(DB.projects.length){
+        DB.projects.forEach(p => pendingUploads.add(p.id));
+        await syncToCloud();
+      }
+      setSaveState('☁ Conectado');
+      return;
+    }
+
+    try{
+      localStorage.setItem(LS_BACKUP_KEY, JSON.stringify({ projects: DB.projects, savedAt: Date.now() }));
+    }catch(e){}
+
+    const localById = new Map(DB.projects.map(p => [p.id, p]));
+    const merged = [...DB.projects];
+
+    cloudProjects.forEach(cp => {
+      const local = localById.get(cp.id);
+      if(!local){
+        merged.push(cp);
+      } else {
+        const localCount = countItems(local);
+        const cloudCount = countItems(cp);
+        const localTime = local.updatedAt || 0;
+        const cloudTime = cp.updatedAt || 0;
+        let useCloud = false;
+        if(cloudCount > localCount) useCloud = true;
+        else if(cloudCount < localCount) useCloud = false;
+        else if(cloudTime > localTime) useCloud = true;
+        if(useCloud){
+          const idx = merged.findIndex(p => p.id === cp.id);
+          if(idx >= 0) merged[idx] = cp;
+        } else if(localCount > cloudCount){
+          pendingUploads.add(cp.id);
+        }
+      }
+    });
+
+    // Detectar locales que no están en la nube
+    const cloudIds = new Set(cloudProjects.map(p => p.id));
+    DB.projects.forEach(lp => {
+      if(!cloudIds.has(lp.id)) pendingUploads.add(lp.id);
+    });
+
+    DB.projects = merged;
+    DB.currentId = userMeta.currentId || DB.currentId;
+    DB.projects.forEach(p => migrateProject(p));
+    P = DB.projects.find(p => p.id === DB.currentId) || DB.projects[0] || null;
+    if(P) DB.currentId = P.id;
+    applyTheme();
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){}
+    render();
+    setSaveState('☁ Sincronizado ✓');
+
+    if(pendingUploads.size || pendingDeletes.size){
+      setTimeout(syncToCloud, 300);
+    }
+  }catch(e){
+    console.warn('Error loadFromCloud:', e);
+    setSaveState('⚠ Sin conexión');
+  }
+}
+
+function startCloudListener(){
+  if(!currentUser || !fbDb) return;
+  if(cloudListenerUnsubscribe){ try{ cloudListenerUnsubscribe(); }catch(e){} cloudListenerUnsubscribe = null; }
+
+  loadFromCloud().then(() => {
+    const userRef = fbDb.collection('users').doc(currentUser.uid);
+    cloudListenerUnsubscribe = userRef.collection('projects').onSnapshot(snap => {
+      if(cloudSyncing) return;
+      let changed = false;
+      const cloudProjects = [];
+      snap.forEach(doc => {
+        const data = doc.data() || {};
+        cloudProjects.push({ ...data, id: data.id || doc.id });
+      });
+
+      const cloudIds = new Set(cloudProjects.map(p => p.id));
+      let merged = [...DB.projects];
+
+      // Quitar los borrados en la nube (si no están pendientes de subir)
+      const beforeLen = merged.length;
+      merged = merged.filter(p => cloudIds.has(p.id) || pendingUploads.has(p.id));
+      if(merged.length !== beforeLen) changed = true;
+
+      cloudProjects.forEach(cp => {
+        const idx = merged.findIndex(p => p.id === cp.id);
+        if(idx < 0){
+          merged.push(cp);
+          changed = true;
+        } else {
+          const local = merged[idx];
+          const localCount = countItems(local);
+          const cloudCount = countItems(cp);
+          const localTime = local.updatedAt || 0;
+          const cloudTime = cp.updatedAt || 0;
+          let useCloud = false;
+          if(cloudCount > localCount) useCloud = true;
+          else if(cloudCount < localCount) useCloud = false;
+          else if(cloudTime > localTime) useCloud = true;
+          if(useCloud){
+            merged[idx] = cp;
+            changed = true;
+          } else if(localCount > cloudCount){
+            pendingUploads.add(cp.id);
+          }
+        }
+      });
+
+      if(changed){
+        DB.projects = merged;
+        DB.projects.forEach(p => migrateProject(p));
+        if(!DB.projects.find(p => p.id === DB.currentId)){
+          DB.currentId = DB.projects[0] ? DB.projects[0].id : null;
+          P = DB.projects[0] || null;
+        } else {
+          P = DB.projects.find(p => p.id === DB.currentId);
+        }
+        applyTheme();
+        try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){}
+        render();
+        setSaveState('☁ Actualizado');
+      }
+
+      if(pendingUploads.size || pendingDeletes.size){
+        setTimeout(syncToCloud, 300);
+      }
+    }, err => console.warn('onSnapshot error:', err));
+  });
 }
 
 function abrirModalBackupLocal(){
@@ -7733,17 +7941,16 @@ function abrirModalBackupLocal(){
   try{ backup = JSON.parse(localStorage.getItem(LS_BACKUP_KEY) || 'null'); }catch(e){}
   if(!backup || !Array.isArray(backup.projects) || !backup.projects.length){
     openModal(`<h3>🛟 Copia de seguridad local</h3>
-      <p>Todavía no hay ninguna copia guardada. Se crea automáticamente cada vez que se sincroniza con la nube, justo antes de fusionar los datos, por si algún cambio reciente quedara pisado.</p>
+      <p>Todavía no hay ninguna copia guardada.</p>
       <div class="modal-actions"><button class="btn" data-close>Cerrar</button></div>`,
       m=> m.querySelector('[data-close]').onclick = closeModal);
     return;
   }
   const fecha = new Date(backup.savedAt).toLocaleString('es');
-  const rows = backup.projects.map(p=>`<li>${esc(p.name||'Sin nombre')} <span class="hint" style="margin:0">(${((p.updatedAt)?new Date(p.updatedAt).toLocaleString('es'):'sin fecha')})</span></li>`).join('');
+  const rows = backup.projects.map(p=>`<li>${esc(p.name||'Sin nombre')}</li>`).join('');
   openModal(`<h3>🛟 Copia de seguridad local</h3>
-    <p>Guardada el <b>${esc(fecha)}</b>, justo antes de la última fusión con la nube. Contiene ${backup.projects.length} proyecto${backup.projects.length!==1?'s':''}:</p>
+    <p>Guardada el <b>${esc(fecha)}</b>. Contiene ${backup.projects.length} proyecto${backup.projects.length!==1?'s':''}:</p>
     <ul style="margin:8px 0 14px 18px;font-size:13px;color:var(--ink-dim)">${rows}</ul>
-    <p class="hint">Restaurar reemplaza TODOS tus proyectos actuales por los de esta copia. Es recomendable exportar tu proyecto actual antes, por las dudas.</p>
     <div class="modal-actions">
       <button class="btn" data-close>Cerrar</button>
       <button class="btn danger" data-restore>Restaurar esta copia</button>
@@ -7751,60 +7958,19 @@ function abrirModalBackupLocal(){
     m=>{
       m.querySelector('[data-close]').onclick = closeModal;
       m.querySelector('[data-restore]').onclick = async ()=>{
-        if(await confirmar('¿Reemplazar todos tus proyectos actuales por los de la copia de seguridad? Esto no se puede deshacer.')){
+        if(await confirmar('¿Reemplazar todos tus proyectos por los de la copia?')){
           DB.projects = backup.projects;
           DB.projects.forEach(p => migrateProject(p));
           DB.currentId = DB.projects[0] ? DB.projects[0].id : null;
           P = DB.projects[0] || null;
+          DB.projects.forEach(p => pendingUploads.add(p.id));
           applyTheme(); saveDB();
           closeModal(); view = P ? 'home' : 'library'; render();
-          toast('Copia de seguridad restaurada ✓');
+          toast('Copia restaurada ✓');
         }
       };
     });
 }
-
-async function loadFromCloud(){
-  if(!currentUser || !fbDb) return;
-  setSaveState('☁ Descargando…');
-  try{
-    const ref = fbDb.collection('users').doc(currentUser.uid);
-    const snap = await ref.get();
-    if(snap.exists){
-      const data = snap.data();
-      if(Array.isArray(data.projects)){
-        const cloudProjects = data.projects;
-        const localProjects = DB.projects || [];
-        // Resguardo local antes de fusionar, por si algún proyecto local más nuevo
-        // quedara pisado por una versión de la nube con timestamp mayor.
-        try{ localStorage.setItem(LS_BACKUP_KEY, JSON.stringify({ projects: localProjects, savedAt: Date.now() })); }catch(e){}
-        const merged = new Map();
-        localProjects.forEach(p => merged.set(p.id, p));
-        cloudProjects.forEach(p => {
-          const local = merged.get(p.id);
-          if(!local || (p.updatedAt||0) > (local.updatedAt||0)){
-            merged.set(p.id, p);
-          }
-        });
-        DB.projects = [...merged.values()];
-        DB.currentId = data.currentId || DB.currentId;
-        DB.projects.forEach(p => migrateProject(p));
-        P = DB.projects.find(p => p.id === DB.currentId) || DB.projects[0] || null;
-        if(P) DB.currentId = P.id;
-        applyTheme();
-        try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){}
-        render();
-        setSaveState('☁ Sincronizado ✓');
-      }
-    } else {
-      await syncToCloud();
-    }
-  }catch(e){
-    console.warn('Error bajando de Firebase:', e);
-    setSaveState('⚠ Sin conexión');
-  }
-}
-
 /* ============================================================
    IMGBB — imágenes
 ============================================================ */
@@ -8364,19 +8530,30 @@ function init(){
   render();
   setSaveState(P ? 'Guardado ✓' : '');
 
-  // Firebase: observar sesión
+  // Firebase: observar sesión (con listener tiempo real)
   if(fbAuth){
     fbAuth.onAuthStateChanged(async (user) => {
       currentUser = user || null;
       renderUserBar();
       if(user){
-        await loadFromCloud();
+        startCloudListener();
         setSaveState('☁ Conectado');
       } else {
+        if(cloudListenerUnsubscribe){ try{ cloudListenerUnsubscribe(); }catch(e){} cloudListenerUnsubscribe = null; }
         setSaveState(P ? 'Guardado ✓' : '');
       }
     });
   }
+
+  // Flush al ocultar la pestaña, refrescar al volver
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'hidden'){
+      clearTimeout(saveTimer);
+      if(P) saveDB();
+    } else if(document.visibilityState === 'visible' && currentUser){
+      loadFromCloud();
+    }
+  });
   renderUserBar();
   setupPWA();
 
