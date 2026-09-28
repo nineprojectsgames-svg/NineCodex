@@ -713,6 +713,30 @@ select{cursor:pointer}
 }
 .nav-stats b{ color:var(--gold); font-style:normal; font-variant-numeric:tabular-nums; }
 
+/* ---------- Bloques colapsables ---------- */
+.collapsible-block{
+  background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(0,0,0,.07)),var(--paper);
+  border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:0 2px 0 #00000055; margin-top:14px; overflow:hidden;
+}
+.collapsible-head{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 16px;cursor:pointer;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.collapsible-head:hover{ background:rgba(255,255,255,.03); }
+.cb-caret{ color:var(--gold); font-size:11px; width:14px; text-align:center; flex:0 0 14px; }
+.cb-title{ margin:0; font-size:13px; color:var(--gold); flex:1; text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+.cb-badge{ font-size:11px; color:var(--muted); background:var(--bg2); padding:1px 8px; border-radius:10px; border:1px solid var(--line); }
+.cb-actions{ display:flex; gap:4px; }
+.collapsible-block:not(.collapsed) .collapsible-head{ border-bottom:1px solid var(--line); }
+.collapsible-body{ padding:14px 18px; }
+.collapsible-block.collapsed .collapsible-body{ display:none; }
+@media(max-width:820px){
+  .collapsible-head{ padding:10px 12px; }
+  .collapsible-body{ padding:12px 12px; }
+}
+
 /* ============================================================
    MOBILE — Todo se adapta para pantallas táctiles pequeñas
 ============================================================ */
@@ -2006,6 +2030,46 @@ function findBacklinks(targetId){
   })(P.world);
   return refs;
 }
+
+function makeCollapsible(key, title, contentNode, opts){
+  opts = opts || {};
+  const LS_C = 'codex_collapse_' + key;
+  let open;
+  try{
+    const saved = localStorage.getItem(LS_C);
+    open = saved === null ? (opts.defaultOpen !== false) : saved === '1';
+  }catch(e){ open = opts.defaultOpen !== false; }
+
+  const wrap = make(`<div class="collapsible-block ${open?'':'collapsed'}">
+    <div class="collapsible-head">
+      <span class="cb-caret">${open?'▼':'▶'}</span>
+      <h3 class="cb-title">${esc(title)}</h3>
+      ${opts.badge != null ? `<span class="cb-badge">${esc(String(opts.badge))}</span>` : ''}
+      <div class="cb-actions"></div>
+    </div>
+    <div class="collapsible-body"></div>
+  </div>`);
+  wrap.querySelector('.collapsible-body').appendChild(contentNode);
+  if(opts.actions){
+    const acts = wrap.querySelector('.cb-actions');
+    opts.actions.forEach(a => {
+      const b = make(`<button class="btn small ${a.cls||''}">${a.label}</button>`);
+      b.onclick = (e)=>{ e.stopPropagation(); a.onClick && a.onClick(); };
+      acts.appendChild(b);
+    });
+  }
+  const head = wrap.querySelector('.collapsible-head');
+  const caret = wrap.querySelector('.cb-caret');
+  head.onclick = (e)=>{
+    if(e.target.closest('.cb-actions')) return;
+    open = !open;
+    wrap.classList.toggle('collapsed', !open);
+    caret.textContent = open ? '▼' : '▶';
+    try{ localStorage.setItem(LS_C, open ? '1' : '0'); }catch(e){}
+  };
+  return wrap;
+}
+
 function renderBacklinks(targetId){
   const refs = findBacklinks(targetId);
   const box = make('<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line)"></div>');
@@ -2880,9 +2944,6 @@ function viewHome(){
       }}], 'Nombre del proyecto'));
   cover.appendChild(imagePicker(P.image, v=>{ P.image = v; touch(); }));
 
-  w.querySelector('[data-genres]').appendChild(makeChipsEditor(P.genres, null, 'Género'));
-  w.querySelector('[data-subgenres]').appendChild(makeChipsEditor(P.subgenres, null, 'Subgénero'));
-
   const stats = w.querySelector('[data-stats]');
   const wcCard = make(`<div class="stat" style="grid-column:1/-1"><b>${projectWordCount().toLocaleString('es')}</b><span>Palabras totales</span></div>`);
   wcCard.onclick = ()=>{ view='notes'; render(); };
@@ -2912,9 +2973,13 @@ function viewHome(){
     stats.appendChild(card);
   });
 
+  w.querySelector('[data-genres]').appendChild(makeChipsEditor(P.genres, null, 'Género'));
+  w.querySelector('[data-subgenres]').appendChild(makeChipsEditor(P.subgenres, null, 'Subgénero'));
+
   w.querySelector('[data-desc]').appendChild(
     createEditor(P.description, v=>{ P.description = v; touch(); })
   );
+
   return w;
 }
 function countZones(arr){ let n=0; (arr||[]).forEach(z=>{ n += 1 + countZones(z.children); }); return n; }
@@ -3032,22 +3097,23 @@ function viewChapters(){
         }}
     ], 'Título del capítulo'));
 
+       // ---------- DATOS BÁSICOS ----------
+    const basicContent = make('<div></div>');
     const actWrap = make(`<label class="field"><span>Acto / Temporada</span>
       <select>
         <option value="">— Sin asignar —</option>
         ${P.story.acts.map(a=>`<option value="${a.id}" ${c.actId===a.id?'selected':''}>${esc(a.name||'Sin título')}</option>`).join('')}
       </select></label>`);
-    actWrap.querySelector('select').onchange = e=>{ c.actId = e.target.value; touch(); drawList(); };
-    box.appendChild(actWrap);
-
-    box.appendChild(fieldInput('Temporada / Arco (etiqueta libre)', c.season, v=>{ c.season = v; touch(); drawList(); }, 'Temporada 1'));
+    actWrap.querySelector('select').onchange = e2=>{ c.actId = e2.target.value; touch(); drawList(); };
+    basicContent.appendChild(actWrap);
+    basicContent.appendChild(fieldInput('Temporada / Arco (etiqueta libre)', c.season, v=>{ c.season = v; touch(); drawList(); }, 'Temporada 1'));
     const dates = make('<div class="grid2"></div>');
     dates.appendChild(fieldInput('Inicio', c.start, v=>{ c.start = v; touch(); }, '01/01/2024'));
     dates.appendChild(fieldInput('Fin', c.end, v=>{ c.end = v; touch(); }, '15/02/2024'));
-    box.appendChild(dates);
+    basicContent.appendChild(dates);
+    box.appendChild(makeCollapsible('chapter_basic', '📋 Datos básicos', basicContent, { defaultOpen: true }));
 
-    const charsBox = make('<div style="margin:12px 0"></div>');
-    charsBox.appendChild(make('<div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:6px">Personajes que aparecen</div>'));
+    // ---------- PERSONAJES ----------
     const chipsBox = make('<div class="chips"></div>');
     function drawChars(){
       chipsBox.innerHTML = '';
@@ -3056,7 +3122,7 @@ function viewChapters(){
         if(!ch) return;
         const chip = make(`<span class="chip">🧝 ${esc(ch.name||'Sin nombre')}<span class="x">✕</span></span>`);
         chip.querySelector('.x').onclick = ()=>{ c.characterIds.splice(i,1); touch(); drawChars(); };
-        chip.onclick = (e)=>{ if(e.target.classList.contains('x')) return; goTo(ch.id); };
+        chip.onclick = (e2)=>{ if(e2.target.classList.contains('x')) return; goTo(ch.id); };
         chip.style.cursor = 'pointer';
         chipsBox.appendChild(chip);
       });
@@ -3065,11 +3131,9 @@ function viewChapters(){
       chipsBox.appendChild(addChip);
     }
     drawChars();
-    charsBox.appendChild(chipsBox);
-    box.appendChild(charsBox);
+    box.appendChild(makeCollapsible('chapter_chars', '🧝 Personajes que aparecen', chipsBox, { badge: (c.characterIds||[]).length }));
 
-    const evBox = make('<div style="margin:12px 0"></div>');
-    evBox.appendChild(make('<div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:6px">Eventos importantes</div>'));
+    // ---------- EVENTOS ----------
     const evChips = make('<div class="chips"></div>');
     function drawEv(){
       evChips.innerHTML = '';
@@ -3078,7 +3142,7 @@ function viewChapters(){
         if(!ev) return;
         const chip = make(`<span class="chip">⚡ ${esc(ev.title||'Sin título')}<span class="x">✕</span></span>`);
         chip.querySelector('.x').onclick = ()=>{ c.eventIds.splice(i,1); touch(); drawEv(); };
-        chip.onclick = (e)=>{ if(e.target.classList.contains('x')) return; goTo(ev.id); };
+        chip.onclick = (e2)=>{ if(e2.target.classList.contains('x')) return; goTo(ev.id); };
         chip.style.cursor = 'pointer';
         evChips.appendChild(chip);
       });
@@ -3087,12 +3151,12 @@ function viewChapters(){
       evChips.appendChild(addChip);
     }
     drawEv();
-    evBox.appendChild(evChips);
-    box.appendChild(evBox);
+    box.appendChild(makeCollapsible('chapter_events', '⚡ Eventos importantes', evChips, { badge: (c.eventIds||[]).length }));
 
-    box.appendChild(make('<div style="height:8px"></div>'));
-    box.appendChild(createEditor(c.content, v=>{ c.content = v; touch(); }));
-    box.appendChild(renderBacklinks(c.id));
+    // ---------- CONTENIDO ----------
+    box.appendChild(makeCollapsible('chapter_content', '📝 Contenido del capítulo', createEditor(c.content, v=>{ c.content = v; touch(); })));
+
+    box.appendChild(makeCollapsible('chapter_backlinks', '🔗 Mencionado en', renderBacklinks(c.id), { defaultOpen: false }));
     detail.appendChild(box);
   }
 
@@ -3114,24 +3178,27 @@ function viewChapters(){
           }
         }}
     ], 'Nombre del acto'));
+       // ---------- DATOS BÁSICOS ----------
+    const basicContent = make('<div></div>');
     const dates = make('<div class="grid2"></div>');
     dates.appendChild(fieldInput('Inicio', a.start, v=>{ a.start = v; touch(); }, '01/01/2024'));
     dates.appendChild(fieldInput('Fin', a.end, v=>{ a.end = v; touch(); }, '15/02/2024'));
-    box.appendChild(dates);
-    box.appendChild(make('<div style="margin:10px 0 4px;font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft)">Descripción</div>'));
-    box.appendChild(createEditor(a.description, v=>{ a.description = v; touch(); }));
+    basicContent.appendChild(dates);
+    basicContent.appendChild(createEditor(a.description, v=>{ a.description = v; touch(); }));
+    box.appendChild(makeCollapsible('act_basic', '📋 Datos del acto', basicContent, { defaultOpen: true }));
 
-    const listBox = make('<div style="margin-top:16px"></div>');
-    listBox.appendChild(make('<div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:6px">Capítulos en este acto</div>'));
+    // ---------- CAPÍTULOS ----------
+    const listBox = make('<div></div>');
     const chapters = P.story.chapters.filter(c=>c.actId === a.id);
     if(!chapters.length) listBox.appendChild(make('<div class="empty">Sin capítulos asignados.</div>'));
-    chapters.forEach(c=>{
-      const it = make(`<div class="list-item"><span class="li-title">${esc(c.title||'Capítulo sin título')}</span></div>`);
-      it.onclick = ()=>{ sel.chapters = c.id; drawList(); drawDetail(); };
+    chapters.forEach(ch=>{
+      const it = make(`<div class="list-item"><span class="li-title">${esc(ch.title||'Capítulo sin título')}</span></div>`);
+      it.onclick = ()=>{ sel.chapters = ch.id; drawList(); drawDetail(); };
       listBox.appendChild(it);
     });
-    box.appendChild(listBox);
-    box.appendChild(renderBacklinks(a.id));
+    box.appendChild(makeCollapsible('act_chapters', '📜 Capítulos en este acto', listBox, { badge: chapters.length }));
+
+    box.appendChild(makeCollapsible('act_backlinks', '🔗 Mencionado en', renderBacklinks(a.id), { defaultOpen: false }));
     detail.appendChild(box);
   }
 
@@ -3301,6 +3368,8 @@ function viewEvents(){
         }}
     ], 'Título del evento'));
 
+        // ---------- DATOS BÁSICOS ----------
+    const basicContent = make('<div></div>');
     const typeWrap = make(`<label class="field"><span>Tipo</span><select></select></label>`);
     const ts = typeWrap.querySelector('select');
     const oNone = document.createElement('option'); oNone.value=''; oNone.textContent='— Sin definir —'; ts.appendChild(oNone);
@@ -3317,17 +3386,16 @@ function viewEvents(){
       }
       e.type = ts.value; touch(); drawList();
     };
-    box.appendChild(typeWrap);
-
-    box.appendChild(fieldInput('Fecha / Momento', e.date, v=>{ e.date = v; touch(); drawList(); }, 'Año 342, primavera...'));
+    basicContent.appendChild(typeWrap);
+    basicContent.appendChild(fieldInput('Fecha / Momento', e.date, v=>{ e.date = v; touch(); drawList(); }, 'Año 342, primavera...'));
     const dates = make('<div class="grid2"></div>');
     dates.appendChild(fieldInput('Inicio', e.start, v=>{ e.start = v; touch(); }, '01/01/2024'));
     dates.appendChild(fieldInput('Fin', e.end, v=>{ e.end = v; touch(); }, '15/02/2024'));
-    box.appendChild(dates);
-    box.appendChild(imagePicker(e.image, v=>{ e.image = v; touch(); drawList(); }));
+    basicContent.appendChild(dates);
+    basicContent.appendChild(imagePicker(e.image, v=>{ e.image = v; touch(); drawList(); }));
+    box.appendChild(makeCollapsible('event_basic', '📋 Datos básicos', basicContent, { defaultOpen: true }));
 
-    const charsBox = make('<div style="margin:12px 0"></div>');
-    charsBox.appendChild(make('<div style="font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:6px">Personajes implicados</div>'));
+    // ---------- PERSONAJES ----------
     const chipsBox = make('<div class="chips"></div>');
     function drawChars(){
       chipsBox.innerHTML = '';
@@ -3345,11 +3413,12 @@ function viewEvents(){
       chipsBox.appendChild(addChip);
     }
     drawChars();
-    charsBox.appendChild(chipsBox);
-    box.appendChild(charsBox);
+    box.appendChild(makeCollapsible('event_chars', '🧝 Personajes implicados', chipsBox, { badge: (e.characterIds||[]).length }));
 
-    box.appendChild(createEditor(e.content, v=>{ e.content = v; touch(); }));
-    box.appendChild(renderBacklinks(e.id));
+    // ---------- DESCRIPCIÓN ----------
+    box.appendChild(makeCollapsible('event_content', '📝 Descripción', createEditor(e.content, v=>{ e.content = v; touch(); })));
+
+    box.appendChild(makeCollapsible('event_backlinks', '🔗 Mencionado en', renderBacklinks(e.id), { defaultOpen: false }));
     detail.appendChild(box);
   }
 
@@ -3571,12 +3640,10 @@ function viewTimeline(){
       }}
     ], 'Nombre de la cronología'));
 
-    const descWrap = make('<div style="margin-bottom:12px"></div>');
-    descWrap.appendChild(createEditor(T.description, v=>{ T.description = v; touch(); }));
-    box.appendChild(descWrap);
+        box.appendChild(makeCollapsible('tl_desc', '📝 Descripción', createEditor(T.description, v=>{ T.description = v; touch(); }), { defaultOpen: false }));
+    box.appendChild(makeCollapsible('tl_calcfg', '📅 Configuración del calendario', buildCalendarConfigUI(T, ()=>{ if(T.view.mode==='calendar') drawBody(); }), { defaultOpen: false }));
 
     const body = make('<div data-body></div>');
-    box.appendChild(buildCalendarConfigUI(T, ()=>{ if(T.view.mode==='calendar') drawBody(); }));
 
     const modes = [
       { id:'vertical',   label:'↕ Vertical' },
@@ -3596,7 +3663,7 @@ function viewTimeline(){
     </div>`);
     box.appendChild(toolbar);
     box.appendChild(body);
-    box.appendChild(renderBacklinks(T.id));
+    box.appendChild(makeCollapsible('tl_backlinks', '🔗 Mencionado en', renderBacklinks(T.id), { defaultOpen: false }));
     detail.appendChild(box);
 
     const zoomSpan = toolbar.querySelector('[data-zoom]');
@@ -4070,6 +4137,8 @@ function viewIdeas(){
         }}
     ], 'Título'));
 
+        // ---------- DATOS BÁSICOS ----------
+    const basicContent = make('<div></div>');
     const typeWrap = make(`<label class="field"><span>Tipo</span><select></select></label>`);
     const ts = typeWrap.querySelector('select');
     const oNone = document.createElement('option'); oNone.value=''; oNone.textContent='— Sin definir —'; ts.appendChild(oNone);
@@ -4079,31 +4148,33 @@ function viewIdeas(){
     ts.value = it.type || '';
     ts.onchange = ()=>{
       if(ts.value === '__custom__'){
-        pedir('Otro tipo', [{key:'v', label:'Escribe', value:'', autofocus:true}]).then(r=>{
-          if(r && r.v.trim()){ it.type = r.v.trim(); touch(); ctrl.drawList(); drawDetail(); }
+        pedir('Otro tipo', [{key:'v', label:'Escribe', value:'', autofocus:true}]).then(r2=>{
+          if(r2 && r2.v.trim()){ it.type = r2.v.trim(); touch(); ctrl.drawList(); drawDetail(); }
         });
         return;
       }
       it.type = ts.value; touch(); ctrl.drawList();
     };
-    box.appendChild(typeWrap);
+    basicContent.appendChild(typeWrap);
 
     const estadoWrap = make(`<label class="field"><span>Estado</span><select></select></label>`);
     const es = estadoWrap.querySelector('select');
-    IDEA_STATUS.forEach(e=>{ const o = document.createElement('option'); o.value=e; o.textContent=e; es.appendChild(o); });
+    IDEA_STATUS.forEach(e2=>{ const o = document.createElement('option'); o.value=e2; o.textContent=e2; es.appendChild(o); });
     es.value = it.status || 'Sin definir';
     es.onchange = ()=>{ it.status = es.value; touch(); ctrl.drawList(); };
-    box.appendChild(estadoWrap);
+    basicContent.appendChild(estadoWrap);
 
     const folderWrap = make(`<label class="field"><span>Carpeta</span>
       <select>
         <option value="">— Sin carpeta —</option>
         ${P.story.ideaFolders.map(f=>`<option value="${esc(f)}" ${it.folder===f?'selected':''}>${esc(f)}</option>`).join('')}
       </select></label>`);
-    folderWrap.querySelector('select').onchange = e=>{ it.folder = e.target.value; touch(); ctrl.drawList(); };
-    box.appendChild(folderWrap);
-    box.appendChild(createEditor(it.content, v=>{ it.content = v; touch(); }));
-    box.appendChild(renderBacklinks(it.id));
+    folderWrap.querySelector('select').onchange = e2=>{ it.folder = e2.target.value; touch(); ctrl.drawList(); };
+    basicContent.appendChild(folderWrap);
+    box.appendChild(makeCollapsible('idea_basic', '📋 Datos básicos', basicContent, { defaultOpen: true }));
+
+    box.appendChild(makeCollapsible('idea_content', '📝 Contenido', createEditor(it.content, v=>{ it.content = v; touch(); })));
+    box.appendChild(makeCollapsible('idea_backlinks', '🔗 Mencionado en', renderBacklinks(it.id), { defaultOpen: false }));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
@@ -4690,8 +4761,7 @@ function viewCharacters(){
 
     box.appendChild(fieldInput('Descripción breve', c.short, v=>{ c.short = v; touch(); drawList(); }, 'Una frase...'));
 
-    const dBox = make('<div style="margin:16px 0"></div>');
-    dBox.appendChild(make('<h3 style="font-size:14px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-bottom:8px">Datos del personaje</h3>'));
+        // ---------- DATOS DEL PERSONAJE ----------
     const dlist = make('<div></div>');
     function drawFields(){
       dlist.innerHTML = '';
@@ -4708,20 +4778,20 @@ function viewCharacters(){
       });
     }
     drawFields();
-    dBox.appendChild(dlist);
-    const addBtn = make('<button class="btn small" style="margin-top:6px">+ Añadir dato</button>');
-    addBtn.onclick = ()=>{ c.fields = c.fields || []; c.fields.push(newField()); touch(); drawFields(); };
-    dBox.appendChild(addBtn);
-    box.appendChild(dBox);
+    const dContent = make('<div></div>');
+    dContent.appendChild(dlist);
+    const addFieldBtn = make('<button class="btn small" style="margin-top:6px">+ Añadir dato</button>');
+    addFieldBtn.onclick = ()=>{ c.fields = c.fields || []; c.fields.push(newField()); touch(); drawFields(); };
+    dContent.appendChild(addFieldBtn);
+    box.appendChild(makeCollapsible('char_fields', '📋 Datos del personaje', dContent, { badge: (c.fields||[]).length }));
 
-    box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:14px">Secciones de texto</div>'));
-    box.appendChild(makeSectionsUI(c, ()=>{ touch(); }));
+    // ---------- SECCIONES DE TEXTO ----------
+    box.appendChild(makeCollapsible('char_sections', '📄 Secciones de texto', makeSectionsUI(c, ()=>{ touch(); })));
 
-    box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:18px">Estadísticas</div>'));
-    box.appendChild(makeStatsUI(c, ()=>{ touch(); }));
+    // ---------- ESTADÍSTICAS ----------
+    box.appendChild(makeCollapsible('char_stats', '📊 Estadísticas', makeStatsUI(c, ()=>{ touch(); })));
 
-    const relBox = make('<div class="paper" style="margin-top:16px;padding:16px 18px"></div>');
-    relBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">🕸 Relaciones</h3>'));
+    // ---------- RELACIONES ----------
     const relList = make('<div></div>');
     function drawRels(){
       relList.innerHTML = '';
@@ -4755,29 +4825,22 @@ function viewCharacters(){
       });
     }
     drawRels();
-    relBox.appendChild(relList);
-    const addRel = make('<button class="btn small" style="margin-top:8px">+ Añadir relación</button>');
-    addRel.onclick = ()=> abrirModalRelacion(c.id);
-    relBox.appendChild(addRel);
-    box.appendChild(relBox);
+    const relContent = make('<div></div>');
+    relContent.appendChild(relList);
+    const addRelBtn = make('<button class="btn small" style="margin-top:8px">+ Añadir relación</button>');
+    addRelBtn.onclick = ()=> abrirModalRelacion(c.id);
+    relContent.appendChild(addRelBtn);
+    box.appendChild(makeCollapsible('char_rels', '🕸 Relaciones', relContent));
 
-    // ---------- PERSPECTIVAS SOBRE OTROS ----------
-    const perspBox = make('<div class="paper" style="margin-top:16px;padding:16px 18px"></div>');
-    perspBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">🔍 Cómo ve a otros</h3>'));
-
+    // ---------- CÓMO VE A OTROS ----------
     const perspList = make('<div></div>');
-
     function drawPerspectives(){
       perspList.innerHTML = '';
       if(!Array.isArray(c.perspectives)) c.perspectives = [];
-
       if(!c.perspectives.length){
         perspList.appendChild(make('<div class="empty" style="padding:6px">Todavía no definiste cómo ve este personaje a otros.</div>'));
       }
-
       c.perspectives.forEach((pv, i)=>{
-        const target = P.characters.find(x => x.id === pv.targetId);
-
         const row = make(`<div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:10px">
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
             <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-soft)">Sobre</span>
@@ -4786,66 +4849,49 @@ function viewCharacters(){
             <button class="btn small danger" data-del title="Eliminar">✕</button>
           </div>
           <label class="field" style="margin-bottom:8px"><span>¿Cómo lo llama?</span>
-            <input data-calls value="${esc(pv.howCalls||'')}" placeholder='Ej: "El idiota", "Maestro", "Hermano"...'></label>
+            <input data-calls value="${esc(pv.howCalls||'')}" placeholder='Ej: "El idiota", "Maestro"...'></label>
           <label class="field" style="margin-bottom:8px"><span>¿Qué sabe de él?</span>
-            <textarea data-knows placeholder="Información que este personaje conoce sobre el otro...">${esc(pv.knows||'')}</textarea></label>
+            <textarea data-knows placeholder="Información que conoce...">${esc(pv.knows||'')}</textarea></label>
           <label class="field" style="margin-bottom:0"><span>¿Qué piensa / opina?</span>
-            <textarea data-thinks placeholder="Opinión, sentimientos, juicio que tiene sobre el otro...">${esc(pv.thinks||'')}</textarea></label>
+            <textarea data-thinks placeholder="Opinión, sentimientos...">${esc(pv.thinks||'')}</textarea></label>
         </div>`);
-
-        // Selector de personaje
         const sel = row.querySelector('[data-target]');
-        sel.appendChild(make(`<option value="">— Sin asignar —</option>`));
+        sel.appendChild(make('<option value="">— Sin asignar —</option>'));
         P.characters.filter(x => x.id !== c.id).forEach(ch=>{
           const opt = make(`<option value="${ch.id}">${esc(ch.name||'Sin nombre')}</option>`);
           if(pv.targetId === ch.id) opt.selected = true;
           sel.appendChild(opt);
         });
         sel.onchange = ()=>{ pv.targetId = sel.value; touch(); };
-
-        // Cómo lo llama
         row.querySelector('[data-calls]').oninput = e => { pv.howCalls = e.target.value; touch(); };
-
-        // Qué sabe
         row.querySelector('[data-knows]').oninput = e => { pv.knows = e.target.value; touch(); };
-
-        // Qué piensa
         row.querySelector('[data-thinks]').oninput = e => { pv.thinks = e.target.value; touch(); };
-
-        // Ir a la ficha
         row.querySelector('[data-go]').onclick = ()=>{
           if(!pv.targetId){ toast('Este personaje no tiene un objetivo asignado'); return; }
           sel.characters = pv.targetId; drawList(); drawDetail();
         };
-
-        // Borrar
         row.querySelector('[data-del]').onclick = async ()=>{
           if(await confirmar('¿Eliminar esta perspectiva?')){
             c.perspectives.splice(i, 1);
-            touch(); drawPerspectives(); drawDetail();
+            touch(); drawPerspectives();
           }
         };
-
         perspList.appendChild(row);
       });
     }
-
     drawPerspectives();
-    perspBox.appendChild(perspList);
-
-    const addPersp = make('<button class="btn small" style="margin-top:8px">+ Añadir perspectiva</button>');
-    addPersp.onclick = ()=>{
+    const perspContent = make('<div></div>');
+    perspContent.appendChild(perspList);
+    const addPerspBtn = make('<button class="btn small" style="margin-top:8px">+ Añadir perspectiva</button>');
+    addPerspBtn.onclick = ()=>{
       if(!c.perspectives) c.perspectives = [];
       c.perspectives.push({ id: uid(), targetId:'', howCalls:'', knows:'', thinks:'' });
       touch(); drawPerspectives();
     };
-    perspBox.appendChild(addPersp);
-    box.appendChild(perspBox);
+    perspContent.appendChild(addPerspBtn);
+    box.appendChild(makeCollapsible('char_persp', '🔍 Cómo ve a otros', perspContent, { badge: (c.perspectives||[]).length }));
 
     // ---------- CÓMO LO VEN OTROS ----------
-    const seenBox = make('<div class="paper" style="margin-top:16px;padding:16px 18px"></div>');
-    seenBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">👁 Cómo lo ven otros</h3>'));
-
     const seenList = make('<div></div>');
     const watchers = [];
     (P.characters || []).forEach(other=>{
@@ -4854,7 +4900,6 @@ function viewCharacters(){
         if(pv.targetId === c.id) watchers.push({ from: other, pv });
       });
     });
-
     if(!watchers.length){
       seenList.appendChild(make('<div class="empty" style="padding:6px">Nadie definió cómo ve a este personaje.</div>'));
     } else {
@@ -4868,20 +4913,15 @@ function viewCharacters(){
           ${pv.knows ? `<div style="font-size:13px;color:var(--ink-dim);margin-bottom:4px"><b style="color:var(--gold-soft);font-size:11.5px;text-transform:uppercase;letter-spacing:1px">Sabe</b><br>${esc(pv.knows)}</div>` : ''}
           ${pv.thinks ? `<div style="font-size:13px;color:var(--ink-dim)"><b style="color:var(--gold-soft);font-size:11.5px;text-transform:uppercase;letter-spacing:1px">Piensa</b><br>${esc(pv.thinks)}</div>` : ''}
         </div>`);
-        item.querySelector('[data-go]').onclick = ()=>{
-          sel.characters = from.id;
-          drawList(); drawDetail();
-        };
+        item.querySelector('[data-go]').onclick = ()=>{ sel.characters = from.id; drawList(); drawDetail(); };
         seenList.appendChild(item);
       });
     }
-    seenBox.appendChild(seenList);
-    box.appendChild(seenBox);
+    box.appendChild(makeCollapsible('char_seen', '👁 Cómo lo ven otros', seenList, { badge: watchers.length }));
 
-    box.appendChild(renderBacklinks(c.id));
-    detail.appendChild(box);
+    // ---------- MENCIÓN EN ----------
+    box.appendChild(makeCollapsible('char_backlinks', '🔗 Mencionado en', renderBacklinks(c.id), { defaultOpen: false }));
 
-    box.appendChild(renderBacklinks(c.id));
     detail.appendChild(box);
   }
 
@@ -6329,8 +6369,9 @@ function viewBestiary(){
         }
       }}
     ], 'Nombre de la bestia'));
-    box.appendChild(imagePicker(b.image, v=>{ b.image = v; touch(); ctrl.drawList(); }));
-
+        // ---------- DATOS BÁSICOS ----------
+    const basicContent = make('<div></div>');
+    basicContent.appendChild(imagePicker(b.image, v=>{ b.image = v; touch(); ctrl.drawList(); }));
     const datos = make('<div class="grid2"></div>');
     datos.appendChild(fieldInput('Especie / Tipo', b.species, v=>{ b.species = v; touch(); ctrl.drawList(); }, 'Ej: Dragón'));
     const folderWrap = make(`<label class="field"><span>Carpeta</span>
@@ -6338,25 +6379,25 @@ function viewBestiary(){
         <option value="">— Sin carpeta —</option>
         ${P.bestiaryFolders.map(f=>`<option value="${esc(f)}" ${b.folder===f?'selected':''}>${esc(f)}</option>`).join('')}
       </select></label>`);
-    folderWrap.querySelector('select').onchange = e=>{ b.folder = e.target.value; touch(); ctrl.drawList(); };
+    folderWrap.querySelector('select').onchange = e2=>{ b.folder = e2.target.value; touch(); ctrl.drawList(); };
     datos.appendChild(folderWrap);
     const persWrap = make(`<label class="field"><span>Personalidad</span><select>
       <option value="">— Sin definir —</option>
       ${BEAST_PERSONALITIES.map(g=>`<option value="${esc(g)}" ${b.personality===g?'selected':''}>${esc(g)}</option>`).join('')}
     </select></label>`);
-    persWrap.querySelector('select').onchange = (e)=>{ b.personality = e.target.value; touch(); ctrl.drawList(); };
+    persWrap.querySelector('select').onchange = (e2)=>{ b.personality = e2.target.value; touch(); ctrl.drawList(); };
     datos.appendChild(persWrap);
     const dangWrap = make(`<label class="field"><span>Peligro</span><select>
       <option value="">— Sin definir —</option>
       ${BEAST_DANGER.map(g=>`<option value="${esc(g)}" ${b.danger===g?'selected':''}>${esc(g)}</option>`).join('')}
     </select></label>`);
-    dangWrap.querySelector('select').onchange = (e)=>{ b.danger = e.target.value; touch(); ctrl.drawList(); };
+    dangWrap.querySelector('select').onchange = (e2)=>{ b.danger = e2.target.value; touch(); ctrl.drawList(); };
     datos.appendChild(dangWrap);
-    box.appendChild(datos);
-    box.appendChild(fieldInput('Descripción breve', b.short, v=>{ b.short = v; touch(); ctrl.drawList(); }, 'Una frase...'));
+    basicContent.appendChild(datos);
+    basicContent.appendChild(fieldInput('Descripción breve', b.short, v=>{ b.short = v; touch(); ctrl.drawList(); }, 'Una frase...'));
+    box.appendChild(makeCollapsible('beast_basic', '📋 Datos básicos', basicContent, { defaultOpen: true }));
 
-    const dBox = make('<div style="margin:16px 0"></div>');
-    dBox.appendChild(make('<h3 style="font-size:14px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-bottom:8px">Datos</h3>'));
+    // ---------- DATOS EXTRA ----------
     const dlist = make('<div></div>');
     function drawFields(){
       dlist.innerHTML = '';
@@ -6366,26 +6407,23 @@ function viewBestiary(){
           <input data-v value="${esc(f.value||'')}" placeholder="Valor">
           <button class="btn small danger">✕</button>
         </div>`);
-        row.querySelector('[data-l]').oninput = e => { f.label = e.target.value; touch(); };
-        row.querySelector('[data-v]').oninput = e => { f.value = e.target.value; touch(); };
+        row.querySelector('[data-l]').oninput = e2 => { f.label = e2.target.value; touch(); };
+        row.querySelector('[data-v]').oninput = e2 => { f.value = e2.target.value; touch(); };
         row.querySelector('button').onclick = ()=>{ b.fields.splice(i,1); touch(); drawFields(); };
         dlist.appendChild(row);
       });
     }
     drawFields();
-    dBox.appendChild(dlist);
+    const dContent = make('<div></div>');
+    dContent.appendChild(dlist);
     const addBtn = make('<button class="btn small" style="margin-top:6px">+ Añadir dato</button>');
     addBtn.onclick = ()=>{ b.fields = b.fields || []; b.fields.push(newField()); touch(); drawFields(); };
-    dBox.appendChild(addBtn);
-    box.appendChild(dBox);
+    dContent.appendChild(addBtn);
+    box.appendChild(makeCollapsible('beast_fields', '📋 Datos extra', dContent, { badge: (b.fields||[]).length }));
 
-    box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:14px">Secciones de texto</div>'));
-    box.appendChild(makeSectionsUI(b, ()=>{ touch(); }));
-
-    box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:18px">Estadísticas</div>'));
-    box.appendChild(makeStatsUI(b, ()=>{ touch(); }));
-
-    box.appendChild(renderBacklinks(b.id));
+    box.appendChild(makeCollapsible('beast_sections', '📄 Secciones de texto', makeSectionsUI(b, ()=>{ touch(); })));
+    box.appendChild(makeCollapsible('beast_stats', '📊 Estadísticas', makeStatsUI(b, ()=>{ touch(); })));
+    box.appendChild(makeCollapsible('beast_backlinks', '🔗 Mencionado en', renderBacklinks(b.id), { defaultOpen: false }));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
@@ -6485,8 +6523,9 @@ function viewRaces(){
         }
       }}
     ], 'Nombre de la raza'));
-    box.appendChild(imagePicker(r.image, v=>{ r.image = v; touch(); ctrl.drawList(); }));
-
+       // ---------- DATOS BÁSICOS ----------
+    const basicContent = make('<div></div>');
+    basicContent.appendChild(imagePicker(r.image, v=>{ r.image = v; touch(); ctrl.drawList(); }));
     const datos = make('<div class="grid2"></div>');
     datos.appendChild(fieldInput('Clasificación', r.classification, v=>{ r.classification = v; touch(); ctrl.drawList(); }, 'Ej: Humanoide'));
     datos.appendChild(fieldInput('Esperanza de vida', r.lifespan, v=>{ r.lifespan = v; touch(); ctrl.drawList(); }, 'Ej: 200 años'));
@@ -6495,13 +6534,13 @@ function viewRaces(){
         <option value="">— Sin carpeta —</option>
         ${P.raceFolders.map(f=>`<option value="${esc(f)}" ${r.folder===f?'selected':''}>${esc(f)}</option>`).join('')}
       </select></label>`);
-    folderWrap.querySelector('select').onchange = e=>{ r.folder = e.target.value; touch(); ctrl.drawList(); };
+    folderWrap.querySelector('select').onchange = e2=>{ r.folder = e2.target.value; touch(); ctrl.drawList(); };
     datos.appendChild(folderWrap);
-    box.appendChild(datos);
-    box.appendChild(fieldInput('Descripción breve', r.short, v=>{ r.short = v; touch(); ctrl.drawList(); }, 'Una frase...'));
+    basicContent.appendChild(datos);
+    basicContent.appendChild(fieldInput('Descripción breve', r.short, v=>{ r.short = v; touch(); ctrl.drawList(); }, 'Una frase...'));
+    box.appendChild(makeCollapsible('race_basic', '📋 Datos básicos', basicContent, { defaultOpen: true }));
 
-    const dBox = make('<div style="margin:16px 0"></div>');
-    dBox.appendChild(make('<h3 style="font-size:14px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-bottom:8px">Datos</h3>'));
+    // ---------- DATOS EXTRA ----------
     const dlist = make('<div></div>');
     function drawFields(){
       dlist.innerHTML = '';
@@ -6511,26 +6550,23 @@ function viewRaces(){
           <input data-v value="${esc(f.value||'')}" placeholder="Valor">
           <button class="btn small danger">✕</button>
         </div>`);
-        row.querySelector('[data-l]').oninput = e => { f.label = e.target.value; touch(); };
-        row.querySelector('[data-v]').oninput = e => { f.value = e.target.value; touch(); };
+        row.querySelector('[data-l]').oninput = e2 => { f.label = e2.target.value; touch(); };
+        row.querySelector('[data-v]').oninput = e2 => { f.value = e2.target.value; touch(); };
         row.querySelector('button').onclick = ()=>{ r.fields.splice(i,1); touch(); drawFields(); };
         dlist.appendChild(row);
       });
     }
     drawFields();
-    dBox.appendChild(dlist);
+    const dContent = make('<div></div>');
+    dContent.appendChild(dlist);
     const addBtn = make('<button class="btn small" style="margin-top:6px">+ Añadir dato</button>');
     addBtn.onclick = ()=>{ r.fields = r.fields || []; r.fields.push(newField()); touch(); drawFields(); };
-    dBox.appendChild(addBtn);
-    box.appendChild(dBox);
+    dContent.appendChild(addBtn);
+    box.appendChild(makeCollapsible('race_fields', '📋 Datos extra', dContent, { badge: (r.fields||[]).length }));
 
-    box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:14px">Secciones de texto</div>'));
-    box.appendChild(makeSectionsUI(r, ()=>{ touch(); }));
-
-    box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:18px">Estadísticas</div>'));
-    box.appendChild(makeStatsUI(r, ()=>{ touch(); }));
-
-    box.appendChild(renderBacklinks(r.id));
+    box.appendChild(makeCollapsible('race_sections', '📄 Secciones de texto', makeSectionsUI(r, ()=>{ touch(); })));
+    box.appendChild(makeCollapsible('race_stats', '📊 Estadísticas', makeStatsUI(r, ()=>{ touch(); })));
+    box.appendChild(makeCollapsible('race_backlinks', '🔗 Mencionado en', renderBacklinks(r.id), { defaultOpen: false }));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
@@ -6647,13 +6683,14 @@ function viewWorld(){
           }
         }}
     ], 'Nombre de la zona'));
-    box.appendChild(imagePicker(z.image, v=>{ z.image = v; touch(); drawTree(); }));
-    box.appendChild(fieldInput('Ubicación / Cómo llegar', z.location, v=>{ z.location = v; touch(); }, 'Al norte del continente...'));
-    box.appendChild(make('<div style="height:6px"></div>'));
-    box.appendChild(createEditor(z.desc, v=>{ z.desc = v; touch(); }));
-    const childType = ZONE_CHILD[z.type];
-    const hijosBox = make(`<div style="margin-top:18px"></div>`);
-    hijosBox.appendChild(make(`<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">${ZONE_ICON[childType]} ${ZONE_LABEL[childType]}s dentro</h3>`));
+        // ---------- DATOS BÁSICOS ----------
+    const basicContent = make('<div></div>');
+    basicContent.appendChild(imagePicker(z.image, v=>{ z.image = v; touch(); drawTree(); }));
+    basicContent.appendChild(fieldInput('Ubicación / Cómo llegar', z.location, v=>{ z.location = v; touch(); }, 'Al norte del continente...'));
+    basicContent.appendChild(createEditor(z.desc, v=>{ z.desc = v; touch(); }));
+    box.appendChild(makeCollapsible('zone_basic', '📋 Datos de la zona', basicContent, { defaultOpen: true }));
+
+    // ---------- SUBZONAS ----------
     const hlist = make('<div class="list"></div>');
     (z.children||[]).forEach(ch=>{
       const it = make(`<div class="list-item"><span class="li-title">${ZONE_ICON[ch.type]} ${esc(ch.name||'Sin nombre')}</span></div>`);
@@ -6661,7 +6698,7 @@ function viewWorld(){
       hlist.appendChild(it);
     });
     if(!z.children || !z.children.length) hlist.innerHTML = '<div class="empty">Sin subzonas.</div>';
-    hijosBox.appendChild(hlist);
+    const childType = ZONE_CHILD[z.type];
     const addChild = make(`<button class="btn small" style="margin-top:8px">+ Añadir ${ZONE_LABEL[childType]}</button>`);
     addChild.onclick = ()=>{
       const nz = newZone(childType);
@@ -6670,33 +6707,35 @@ function viewWorld(){
       ui.worldOpen[z.id] = true;
       worldSel = nz.id; touch(); render();
     };
-    hijosBox.appendChild(addChild);
-    box.appendChild(hijosBox);
-    const linksBox = make('<div style="margin-top:18px"></div>');
-    linksBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🔗 Enlaces</h3>'));
+    const subContent = make('<div></div>');
+    subContent.appendChild(hlist);
+    subContent.appendChild(addChild);
+    box.appendChild(makeCollapsible('zone_children', `${ZONE_ICON[childType]} ${ZONE_LABEL[childType]}s dentro`, subContent, { badge: (z.children||[]).length }));
+
+    // ---------- ENLACES ----------
     const chips = make('<div class="chips"></div>');
     function drawChips(){
       chips.innerHTML = '';
       (z.links||[]).forEach((l, i)=>{
-        const e = indexEntities().find(x=>x.id===l.targetId);
-        if(!e) return;
-        const chip = make(`<span class="chip">${ICON[e.type]||'•'} ${esc(e.name)}<span class="x">✕</span></span>`);
+        const e2 = indexEntities().find(x=>x.id===l.targetId);
+        if(!e2) return;
+        const chip = make(`<span class="chip">${ICON[e2.type]||'•'} ${esc(e2.name)}<span class="x">✕</span></span>`);
         chip.querySelector('.x').onclick = (ev)=>{ ev.stopPropagation(); z.links.splice(i,1); touch(); drawChips(); };
-        chip.onclick = ()=> goTo(e.id);
+        chip.onclick = ()=> goTo(e2.id);
         chip.style.cursor = 'pointer';
         chips.appendChild(chip);
       });
       if(!z.links || !z.links.length) chips.innerHTML = '<span class="hint" style="margin:0">Sin enlaces.</span>';
     }
     drawChips();
-    linksBox.appendChild(chips);
     const addLink = make('<button class="btn small" style="margin-top:8px">+ Enlazar con...</button>');
     addLink.onclick = ()=> modalEnlazar(z, drawChips);
-    linksBox.appendChild(addLink);
-    box.appendChild(linksBox);
+    const linkContent = make('<div></div>');
+    linkContent.appendChild(chips);
+    linkContent.appendChild(addLink);
+    box.appendChild(makeCollapsible('zone_links', '🔗 Enlaces', linkContent, { badge: (z.links||[]).length }));
 
-    const charsBox = make('<div style="margin-top:18px"></div>');
-    charsBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🧝 Personajes que viven aquí</h3>'));
+    // ---------- PERSONAJES ----------
     const charsChips = make('<div class="chips"></div>');
     function drawZoneChars(){
       charsChips.innerHTML = '';
@@ -6714,12 +6753,9 @@ function viewWorld(){
       charsChips.appendChild(addChip);
     }
     drawZoneChars();
-    charsBox.appendChild(charsChips);
-    box.appendChild(charsBox);
+    box.appendChild(makeCollapsible('zone_chars', '🧝 Personajes que viven aquí', charsChips, { badge: (z.characterIds||[]).length }));
 
-    /* ---------- MAPA con toggle edición / lectura ---------- */
-    const mapBox = make('<div style="margin-top:20px"></div>');
-    mapBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🗺 Mapa</h3>'));
+    // ---------- MAPA ----------
     const map = z.map = z.map || { image:'', pins:[], editMode:true };
     if(typeof map.editMode !== 'boolean') map.editMode = true;
     let editMode = map.editMode;
@@ -6736,21 +6772,19 @@ function viewWorld(){
     paintMap();
     const mInp = document.createElement('input'); mInp.type='file'; mInp.accept='image/*';
     mInp.onchange = async ()=>{
-  const f = mInp.files[0]; if(!f) return;
-  try{
-    const url = await uploadImageSmart(f, 'maps');
-    map.image = url; touch(); paintMap(); drawMap();
-  }catch(e){ toast('No se pudo procesar la imagen'); }
-};
+      const f = mInp.files[0]; if(!f) return;
+      try{
+        const url = await uploadImageSmart(f, 'maps');
+        map.image = url; touch(); paintMap(); drawMap();
+      }catch(e){ toast('No se pudo procesar la imagen'); }
+    };
     mapImgPick.querySelector('[data-up]').onclick = ()=> mInp.click();
     mapImgPick.querySelector('[data-del]').onclick = ()=>{ map.image=''; touch(); paintMap(); drawMap(); };
-    mapBox.appendChild(mapImgPick);
 
-    // Botón de toggle entre modo edición y modo lectura
     const modeBtn = make(`<button class="btn small map-edit-toggle"></button>`);
     function updateModeBtn(){
       modeBtn.textContent = editMode ? '✏️ Editar' : '👁 Solo ver';
-      modeBtn.title = editMode ? 'Cambiar a modo lectura (marcadores no se mueven)' : 'Cambiar a modo edición (arrastrar marcadores)';
+      modeBtn.title = editMode ? 'Cambiar a modo lectura' : 'Cambiar a modo edición';
       modeBtn.classList.toggle('primary', editMode);
     }
     updateModeBtn();
@@ -6758,12 +6792,11 @@ function viewWorld(){
       map.editMode = !editMode;
       editMode = map.editMode;
       updateModeBtn();
-      // Mostrar/ocultar controles de edición
       pinCtrls.style.display = editMode ? '' : 'none';
       addPin.style.display = editMode ? '' : 'none';
       drawMap();
       touch();
-      toast(editMode ? '✏️ Modo edición — puedes mover los marcadores' : '👁 Modo lectura — toca un marcador para ir');
+      toast(editMode ? '✏️ Modo edición' : '👁 Modo lectura');
     };
 
     const mapBoxEl = make('<div class="mapbox" data-map></div>');
@@ -6773,20 +6806,14 @@ function viewWorld(){
     pinCtrls.style.display = editMode ? '' : 'none';
     addPin.style.display = editMode ? '' : 'none';
 
-    mapBox.appendChild(mapBoxEl);
-    mapBox.appendChild(pinCtrls);
-    mapBox.appendChild(addPin);
-
     function drawMap(){
       mapBoxEl.classList.toggle('edit-mode', editMode);
       mapBoxEl.classList.toggle('view-mode', !editMode);
       mapBoxEl.style.backgroundImage = map.image ? `url("${map.image}")` : '';
-      // Conservar el botón toggle
       const btnParent = modeBtn.parentNode;
       if(btnParent) btnParent.removeChild(modeBtn);
       mapBoxEl.innerHTML = '';
       mapBoxEl.appendChild(modeBtn);
-
       if(!map.image){
         mapBoxEl.appendChild(make('<div class="empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:0">Sube un mapa</div>'));
       }
@@ -6794,78 +6821,65 @@ function viewWorld(){
         const pin = make(`<div class="pin ${editMode?'editable':'clickable'}">${esc(p.label||'•')}</div>`);
         pin.style.left = p.x + '%'; pin.style.top = p.y + '%';
         mapBoxEl.appendChild(pin);
-
         if(editMode){
-          // Modo edición: arrastrar
           let dragging = false, moved = false;
-          pin.addEventListener('pointerdown', e=>{
-            e.stopPropagation();
-            dragging = true; moved = false;
-            pin.setPointerCapture(e.pointerId);
-            pin.style.zIndex = 10;
-          });
-          pin.addEventListener('pointermove', e=>{
+          pin.addEventListener('pointerdown', e2=>{ e2.stopPropagation(); dragging = true; moved = false; pin.setPointerCapture(e2.pointerId); pin.style.zIndex = 10; });
+          pin.addEventListener('pointermove', e2=>{
             if(!dragging) return;
             moved = true;
             const r = mapBoxEl.getBoundingClientRect();
-            p.x = Math.max(0, Math.min(100, ((e.clientX - r.left)/r.width)*100));
-            p.y = Math.max(0, Math.min(100, ((e.clientY - r.top)/r.height)*100));
+            p.x = Math.max(0, Math.min(100, ((e2.clientX - r.left)/r.width)*100));
+            p.y = Math.max(0, Math.min(100, ((e2.clientY - r.top)/r.height)*100));
             pin.style.left = p.x + '%'; pin.style.top = p.y + '%';
           });
-          pin.addEventListener('pointerup', e=>{
-            dragging = false; pin.style.zIndex = 3;
-            if(moved) touch();
-          });
-          pin.addEventListener('pointercancel', ()=>{ dragging = false; pin.style.zIndex = 3; });
+          pin.addEventListener('pointerup', ()=>{ dragging = false; pin.style.zIndex = 3; if(moved) touch(); });
         } else {
-          // Modo lectura: click para navegar
-          pin.addEventListener('click', e=>{
-            e.stopPropagation();
-            if(p.target) goTo(p.target);
-            else toast('Este marcador no tiene destino');
-          });
+          pin.addEventListener('click', e2=>{ e2.stopPropagation(); if(p.target) goTo(p.target); else toast('Este marcador no tiene destino'); });
         }
       });
       if(editMode) drawPins();
     }
-
-    // Click en el mapa (sólo en modo edición) → añade marcador
-    mapBoxEl.addEventListener('click', e=>{
+    mapBoxEl.addEventListener('click', e2=>{
       if(!editMode) return;
       if(!map.image) return;
-      if(e.target.closest('.pin')) return;
-      if(e.target.closest('.map-edit-toggle')) return;
+      if(e2.target.closest('.pin')) return;
+      if(e2.target.closest('.map-edit-toggle')) return;
       const r = mapBoxEl.getBoundingClientRect();
-      const x = ((e.clientX - r.left)/r.width)*100;
-      const y = ((e.clientY - r.top)/r.height)*100;
+      const x = ((e2.clientX - r.left)/r.width)*100;
+      const y = ((e2.clientY - r.top)/r.height)*100;
       map.pins.push({ id: uid(), x, y, label:'Nuevo', target:null });
       touch(); drawMap();
     });
-
     function drawPins(){
       pinCtrls.innerHTML = '';
-      if(!map.pins.length){ pinCtrls.innerHTML = '<div class="empty" style="padding:6px">Sin marcadores. Toca el mapa para añadir uno.</div>'; return; }
+      if(!map.pins.length){ pinCtrls.innerHTML = '<div class="empty" style="padding:6px">Sin marcadores.</div>'; return; }
       const ents = indexEntities();
       map.pins.forEach((p, i)=>{
         const row = make(`<div class="pinrow">
           <input data-l value="${esc(p.label||'')}" placeholder="Etiqueta">
           <select data-t>
             <option value="">— Destino —</option>
-            ${ents.map(e=>`<option value="${e.id}" ${p.target===e.id?'selected':''}>${esc(ICON[e.type]||'')} ${esc(e.name)}</option>`).join('')}
+            ${ents.map(e2=>`<option value="${e2.id}" ${p.target===e2.id?'selected':''}>${esc(ICON[e2.type]||'')} ${esc(e2.name)}</option>`).join('')}
           </select>
           <button class="btn small danger">✕</button>
         </div>`);
-        row.querySelector('[data-l]').oninput = e => { p.label = e.target.value; touch(); drawMap(); };
-        row.querySelector('[data-t]').onchange = e => { p.target = e.target.value || null; touch(); };
+        row.querySelector('[data-l]').oninput = e2 => { p.label = e2.target.value; touch(); drawMap(); };
+        row.querySelector('[data-t]').onchange = e2 => { p.target = e2.target.value || null; touch(); };
         row.querySelector('button').onclick = ()=>{ map.pins.splice(i,1); touch(); drawMap(); };
         pinCtrls.appendChild(row);
       });
     }
     addPin.onclick = ()=>{ map.pins.push({ id: uid(), x:50, y:50, label:'Nuevo', target:null }); touch(); drawMap(); };
     drawMap();
-    box.appendChild(mapBox);
 
-    box.appendChild(renderBacklinks(z.id));
+    const mapContent = make('<div></div>');
+    mapContent.appendChild(mapImgPick);
+    mapContent.appendChild(mapBoxEl);
+    mapContent.appendChild(pinCtrls);
+    mapContent.appendChild(addPin);
+    box.appendChild(makeCollapsible('zone_map', '🗺 Mapa', mapContent, { badge: (map.pins||[]).length }));
+
+    box.appendChild(makeCollapsible('zone_backlinks', '🔗 Mencionado en', renderBacklinks(z.id), { defaultOpen: false }));
     detail.appendChild(box);
   }
   wrap.querySelector('[data-newworld]').onclick = ()=>{
@@ -6980,8 +6994,9 @@ function viewLore(){
         }
       }}
     ], 'Título'));
-    box.appendChild(imagePicker(l.image, v=>{ l.image = v; touch(); ctrl.drawList(); }));
-
+    // ---------- DATOS BÁSICOS ----------
+    const basicContent = make('<div></div>');
+    basicContent.appendChild(imagePicker(l.image, v=>{ l.image = v; touch(); ctrl.drawList(); }));
     const typeWrap = make(`<label class="field"><span>Tipo</span><select></select></label>`);
     const ts = typeWrap.querySelector('select');
     const oNone = document.createElement('option'); oNone.value=''; oNone.textContent='— Sin definir —'; ts.appendChild(oNone);
@@ -6991,28 +7006,26 @@ function viewLore(){
     ts.value = l.type || '';
     ts.onchange = ()=>{
       if(ts.value === '__custom__'){
-        pedir('Otro tipo', [{key:'v', label:'Escribe', value:'', autofocus:true}]).then(r=>{
-          if(r && r.v.trim()){ l.type = r.v.trim(); touch(); ctrl.drawList(); drawDetail(); }
+        pedir('Otro tipo', [{key:'v', label:'Escribe', value:'', autofocus:true}]).then(r2=>{
+          if(r2 && r2.v.trim()){ l.type = r2.v.trim(); touch(); ctrl.drawList(); drawDetail(); }
         });
         return;
       }
       l.type = ts.value; touch(); ctrl.drawList();
     };
-    box.appendChild(typeWrap);
-
+    basicContent.appendChild(typeWrap);
     const folderWrap = make(`<label class="field"><span>Carpeta</span>
       <select>
         <option value="">— Sin carpeta —</option>
         ${P.loreFolders.map(f=>`<option value="${esc(f)}" ${l.folder===f?'selected':''}>${esc(f)}</option>`).join('')}
       </select></label>`);
-    folderWrap.querySelector('select').onchange = e=>{ l.folder = e.target.value; touch(); ctrl.drawList(); };
-    box.appendChild(folderWrap);
-    box.appendChild(fieldInput('Resumen breve', l.short, v=>{ l.short = v; touch(); ctrl.drawList(); }, 'Una frase...'));
+    folderWrap.querySelector('select').onchange = e2=>{ l.folder = e2.target.value; touch(); ctrl.drawList(); };
+    basicContent.appendChild(folderWrap);
+    basicContent.appendChild(fieldInput('Resumen breve', l.short, v=>{ l.short = v; touch(); ctrl.drawList(); }, 'Una frase...'));
+    box.appendChild(makeCollapsible('lore_basic', '📋 Datos básicos', basicContent, { defaultOpen: true }));
 
-    box.appendChild(make('<div style="font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;margin-top:14px">Secciones de texto</div>'));
-    box.appendChild(makeSectionsUI(l, ()=>{ touch(); }));
-
-    box.appendChild(renderBacklinks(l.id));
+    box.appendChild(makeCollapsible('lore_sections', '📄 Secciones de texto', makeSectionsUI(l, ()=>{ touch(); })));
+    box.appendChild(makeCollapsible('lore_backlinks', '🔗 Mencionado en', renderBacklinks(l.id), { defaultOpen: false }));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
@@ -7101,15 +7114,18 @@ function viewNotes(){
           }
         }}
     ], 'Título de la nota'));
+    const basicContent = make('<div></div>');
     const folderWrap = make(`<label class="field"><span>Carpeta</span>
       <select>
         <option value="">— Sin carpeta —</option>
         ${P.noteFolders.map(f=>`<option value="${esc(f)}" ${n.folder===f?'selected':''}>${esc(f)}</option>`).join('')}
       </select></label>`);
-    folderWrap.querySelector('select').onchange = e=>{ n.folder = e.target.value; touch(); ctrl.drawList(); };
-    box.appendChild(folderWrap);
-    box.appendChild(createEditor(n.content, v=>{ n.content = v; touch(); ctrl.drawList(); }));
-    box.appendChild(renderBacklinks(n.id));
+    folderWrap.querySelector('select').onchange = e2=>{ n.folder = e2.target.value; touch(); ctrl.drawList(); };
+    basicContent.appendChild(folderWrap);
+    box.appendChild(makeCollapsible('note_basic', '📋 Datos básicos', basicContent, { defaultOpen: true }));
+
+    box.appendChild(makeCollapsible('note_content', '📝 Contenido', createEditor(n.content, v=>{ n.content = v; touch(); ctrl.drawList(); })));
+    box.appendChild(makeCollapsible('note_backlinks', '🔗 Mencionado en', renderBacklinks(n.id), { defaultOpen: false }));
     detail.appendChild(box);
   }
   drawDetailRef = drawDetail;
