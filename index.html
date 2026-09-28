@@ -1309,7 +1309,7 @@ function newCharacter(){
     id: uid(), name:'', nickname:'', image:'', short:'',
     age:'', gender:'', height:'', weight:'', roll:'', storyRole:'',
     fields:[], sections: [], stats: [],
-    history:'', timeline:[], keyEvents:'', folder:'', tags: []
+    history:'', timeline:[], keyEvents:'', folder:'', tags: [], perspectives: []
   };
 }
 function newBeast(){
@@ -1522,6 +1522,7 @@ function migrateProject(p){
     if(typeof c.dislikes !== 'string') c.dislikes = '';
     if(typeof c.folder !== 'string') c.folder = '';
     if(!Array.isArray(c.tags)) c.tags = [];
+    if(!Array.isArray(c.perspectives)) c.perspectives = [];
 
     if(!c.sections.length){
       if(c.likes && String(c.likes).trim()){
@@ -4759,6 +4760,126 @@ function viewCharacters(){
     addRel.onclick = ()=> abrirModalRelacion(c.id);
     relBox.appendChild(addRel);
     box.appendChild(relBox);
+
+    // ---------- PERSPECTIVAS SOBRE OTROS ----------
+    const perspBox = make('<div class="paper" style="margin-top:16px;padding:16px 18px"></div>');
+    perspBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">🔍 Cómo ve a otros</h3>'));
+
+    const perspList = make('<div></div>');
+
+    function drawPerspectives(){
+      perspList.innerHTML = '';
+      if(!Array.isArray(c.perspectives)) c.perspectives = [];
+
+      if(!c.perspectives.length){
+        perspList.appendChild(make('<div class="empty" style="padding:6px">Todavía no definiste cómo ve este personaje a otros.</div>'));
+      }
+
+      c.perspectives.forEach((pv, i)=>{
+        const target = P.characters.find(x => x.id === pv.targetId);
+
+        const row = make(`<div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:10px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+            <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-soft)">Sobre</span>
+            <select data-target style="flex:1;min-width:140px;width:auto"></select>
+            <button class="btn small" data-go title="Abrir ficha">→</button>
+            <button class="btn small danger" data-del title="Eliminar">✕</button>
+          </div>
+          <label class="field" style="margin-bottom:8px"><span>¿Cómo lo llama?</span>
+            <input data-calls value="${esc(pv.howCalls||'')}" placeholder='Ej: "El idiota", "Maestro", "Hermano"...'></label>
+          <label class="field" style="margin-bottom:8px"><span>¿Qué sabe de él?</span>
+            <textarea data-knows placeholder="Información que este personaje conoce sobre el otro...">${esc(pv.knows||'')}</textarea></label>
+          <label class="field" style="margin-bottom:0"><span>¿Qué piensa / opina?</span>
+            <textarea data-thinks placeholder="Opinión, sentimientos, juicio que tiene sobre el otro...">${esc(pv.thinks||'')}</textarea></label>
+        </div>`);
+
+        // Selector de personaje
+        const sel = row.querySelector('[data-target]');
+        sel.appendChild(make(`<option value="">— Sin asignar —</option>`));
+        P.characters.filter(x => x.id !== c.id).forEach(ch=>{
+          const opt = make(`<option value="${ch.id}">${esc(ch.name||'Sin nombre')}</option>`);
+          if(pv.targetId === ch.id) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.onchange = ()=>{ pv.targetId = sel.value; touch(); };
+
+        // Cómo lo llama
+        row.querySelector('[data-calls]').oninput = e => { pv.howCalls = e.target.value; touch(); };
+
+        // Qué sabe
+        row.querySelector('[data-knows]').oninput = e => { pv.knows = e.target.value; touch(); };
+
+        // Qué piensa
+        row.querySelector('[data-thinks]').oninput = e => { pv.thinks = e.target.value; touch(); };
+
+        // Ir a la ficha
+        row.querySelector('[data-go]').onclick = ()=>{
+          if(!pv.targetId){ toast('Este personaje no tiene un objetivo asignado'); return; }
+          sel.characters = pv.targetId; drawList(); drawDetail();
+        };
+
+        // Borrar
+        row.querySelector('[data-del]').onclick = async ()=>{
+          if(await confirmar('¿Eliminar esta perspectiva?')){
+            c.perspectives.splice(i, 1);
+            touch(); drawPerspectives(); drawDetail();
+          }
+        };
+
+        perspList.appendChild(row);
+      });
+    }
+
+    drawPerspectives();
+    perspBox.appendChild(perspList);
+
+    const addPersp = make('<button class="btn small" style="margin-top:8px">+ Añadir perspectiva</button>');
+    addPersp.onclick = ()=>{
+      if(!c.perspectives) c.perspectives = [];
+      c.perspectives.push({ id: uid(), targetId:'', howCalls:'', knows:'', thinks:'' });
+      touch(); drawPerspectives();
+    };
+    perspBox.appendChild(addPersp);
+    box.appendChild(perspBox);
+
+    // ---------- CÓMO LO VEN OTROS ----------
+    const seenBox = make('<div class="paper" style="margin-top:16px;padding:16px 18px"></div>');
+    seenBox.appendChild(make('<h3 style="font-size:13px;color:var(--gold-soft);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">👁 Cómo lo ven otros</h3>'));
+
+    const seenList = make('<div></div>');
+    const watchers = [];
+    (P.characters || []).forEach(other=>{
+      if(other.id === c.id) return;
+      (other.perspectives || []).forEach(pv => {
+        if(pv.targetId === c.id) watchers.push({ from: other, pv });
+      });
+    });
+
+    if(!watchers.length){
+      seenList.appendChild(make('<div class="empty" style="padding:6px">Nadie definió cómo ve a este personaje.</div>'));
+    } else {
+      watchers.forEach(({ from, pv })=>{
+        const item = make(`<div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:10px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+            <span style="font-size:12.5px;color:var(--gold)">🧝 ${esc(from.name||'Sin nombre')}</span>
+            <button class="btn small" data-go style="margin-left:auto">Abrir →</button>
+          </div>
+          ${pv.howCalls ? `<div style="font-size:12.5px;margin-bottom:4px"><b style="color:var(--ink-dim)">Lo llama:</b> ${esc(pv.howCalls)}</div>` : ''}
+          ${pv.knows ? `<div style="font-size:13px;color:var(--ink-dim);margin-bottom:4px"><b style="color:var(--gold-soft);font-size:11.5px;text-transform:uppercase;letter-spacing:1px">Sabe</b><br>${esc(pv.knows)}</div>` : ''}
+          ${pv.thinks ? `<div style="font-size:13px;color:var(--ink-dim)"><b style="color:var(--gold-soft);font-size:11.5px;text-transform:uppercase;letter-spacing:1px">Piensa</b><br>${esc(pv.thinks)}</div>` : ''}
+        </div>`);
+        item.querySelector('[data-go]').onclick = ()=>{
+          sel.characters = from.id;
+          drawList(); drawDetail();
+        };
+        seenList.appendChild(item);
+      });
+    }
+    seenBox.appendChild(seenList);
+    box.appendChild(seenBox);
+
+    box.appendChild(renderBacklinks(c.id));
+    detail.appendChild(box);
 
     box.appendChild(renderBacklinks(c.id));
     detail.appendChild(box);
