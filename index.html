@@ -9448,6 +9448,378 @@ button.nav-ghead:hover{background:var(--paper2)}
   }
 })();
 
+/* ============================================================
+   PERSONALIZACIÓN: MIS COLORES, IMAGEN DE FONDO Y AJUSTES DEL EDITOR
+   Agrega tres bloques nuevos en la sección "Ajustes".
+   - Mis colores: 5 colores clave; el resto se calcula solo.
+   - Imagen de fondo: por enlace (viaja con el proyecto) o foto subida
+     (queda solo en este dispositivo y se comprime).
+   - Editor: tamaño de letra, interlineado y ancho de columna.
+   Todo se guarda por proyecto, igual que el tema.
+============================================================ */
+(function(){
+  const ED_FS = {min:13, max:28, def:16};
+  const ED_LH = {min:1.3, max:2.4, def:1.7};
+  const ED_W  = {min:480, max:1400, def:900};   /* en el máximo = sin límite */
+
+  /* ---------- Estilos ---------- */
+  const css = `
+#cx-bg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center;
+  background-repeat:no-repeat;pointer-events:none;display:none}
+body.cx-hasbg .sidebar{background:rgba(var(--bg-rgb),.80)}
+body.cx-hasbg .topbar,body.cx-hasbg .bottom-nav{background:rgba(var(--bg-rgb),.84)}
+html.cx-custom .editor{background:var(--bg2)}
+html.cx-custom .editor-area:focus{background:var(--paper)}
+html.cx-custom .editor-area pre{background:var(--bg)}
+.editor-area{font-size:var(--ed-fs,16px);line-height:var(--ed-lh,1.7)}
+.editor.editor-fullscreen .editor-area{font-size:calc(var(--ed-fs,16px) + 2px);max-width:var(--ed-w,900px)}
+.cx-range{flex:1;min-width:150px;accent-color:var(--gold);height:28px}
+.cx-val{min-width:70px;text-align:right;font-variant-numeric:tabular-nums;color:var(--gold);font-size:13px}
+.cx-warn{margin:8px 0 2px;padding:8px 10px;border:1px solid var(--red);border-radius:6px;font-size:12.5px;color:var(--ink)}
+.cx-ok{margin:8px 0 2px;font-size:12px;color:var(--muted)}
+.cx-prev{margin-top:12px;padding:14px 16px;border:1px dashed var(--line2);border-radius:6px;color:var(--ink);
+  font-size:var(--ed-fs,16px);line-height:var(--ed-lh,1.7)}
+.cx-stat{font-size:12.5px;color:var(--muted)}
+.cx-url{flex:1;min-width:180px}
+.cx-sec .settings-row select{min-width:190px}
+.cx-sec [hidden]{display:none !important}
+.cx-sec input[type=checkbox]{accent-color:var(--gold)}
+@media(max-width:820px){
+  .cx-sec .settings-row input[type=color]{width:56px;height:38px}
+  .cx-sec .settings-row:has(.cx-range) label{flex:1 1 100%}
+  .cx-range{flex:1 1 0;min-width:0;height:34px}
+  .cx-val{flex:none}
+}`;
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ---------- Utilidades de color ---------- */
+  const hex2rgb = h => {
+    h = String(h||'').trim().replace('#','');
+    if(h.length === 3) h = h.split('').map(c => c + c).join('');
+    const n = parseInt(h, 16);
+    return isNaN(n) || h.length !== 6 ? [0,0,0] : [(n>>16)&255, (n>>8)&255, n&255];
+  };
+  const rgb2hex = (r,g,b) => '#' + [r,g,b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2,'0')).join('');
+  const mix = (a, b, t) => {
+    const A = hex2rgb(a), B = hex2rgb(b);
+    return rgb2hex(A[0]+(B[0]-A[0])*t, A[1]+(B[1]-A[1])*t, A[2]+(B[2]-A[2])*t);
+  };
+  const lum = h => {
+    const f = v => { v /= 255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); };
+    const [r,g,b] = hex2rgb(h); return .2126*f(r) + .7152*f(g) + .0722*f(b);
+  };
+  const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); };
+  function derive(c){
+    return {
+      '--bg': c.bg, '--bg2': mix(c.bg, c.paper, .5),
+      '--paper': c.paper, '--paper2': mix(c.paper, c.ink, .08),
+      '--line': c.line, '--line2': mix(c.line, c.ink, .22),
+      '--ink': c.ink, '--ink-dim': mix(c.ink, c.bg, .28), '--muted': mix(c.ink, c.bg, .55),
+      '--gold': c.accent, '--gold-soft': mix(c.accent, c.bg, .45)
+    };
+  }
+  const cssVar = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+  const curColors = () => ({
+    bg: cssVar('--bg'), paper: cssVar('--paper'), ink: cssVar('--ink'), accent: cssVar('--gold'), line: cssVar('--line')
+  });
+
+  /* ---------- Foto guardada en este dispositivo (IndexedDB) ---------- */
+  function idb(){
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('codex_extra', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('bg');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function idbGet(k){
+    try{
+      const d = await idb();
+      return await new Promise((res, rej) => {
+        const q = d.transaction('bg').objectStore('bg').get(k);
+        q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error);
+      });
+    }catch(e){ return null; }
+  }
+  async function idbSet(k, v){
+    const d = await idb();
+    return new Promise((res, rej) => {
+      const t = d.transaction('bg', 'readwrite'); t.objectStore('bg').put(v, k);
+      t.oncomplete = () => res(); t.onerror = () => rej(t.error);
+    });
+  }
+  async function idbDel(k){
+    try{
+      const d = await idb();
+      await new Promise((res, rej) => {
+        const t = d.transaction('bg', 'readwrite'); t.objectStore('bg').delete(k);
+        t.oncomplete = () => res(); t.onerror = () => rej(t.error);
+      });
+    }catch(e){}
+  }
+  function compress(file){
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const max = 1600; let w = img.naturalWidth, h = img.naturalHeight;
+        const k = Math.min(1, max / Math.max(w, h)); w = Math.round(w*k); h = Math.round(h*k);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        res(c.toDataURL('image/jpeg', .78));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('imagen')); };
+      img.src = url;
+    });
+  }
+  const bgCache = {};   /* id de proyecto -> foto (o null) */
+
+  /* ---------- Aplicar todo ---------- */
+  function applyBg(){
+    const s = (P && P.settings) || {};
+    let url = '';
+    if(P && s.bgMode === 'url' && /^https?:\/\//i.test(s.bgUrl || '')) url = s.bgUrl;
+    else if(P && s.bgMode === 'upload'){
+      if(P.id in bgCache) url = bgCache[P.id] || '';
+      else { const id = P.id; idbGet(id).then(v => { bgCache[id] = v; if(P && P.id === id) applyBg(); }); }
+    }
+    let layer = document.getElementById('cx-bg');
+    if(!url){
+      if(layer){ layer.style.display = 'none'; layer.dataset.key = ''; }
+      document.body.classList.remove('cx-hasbg');
+      return;
+    }
+    if(!layer){ layer = document.createElement('div'); layer.id = 'cx-bg'; document.body.insertBefore(layer, document.body.firstChild); }
+    const dim = (s.bgDim == null ? 55 : s.bgDim) / 100;
+    const rgb = cssVar('--bg-rgb') || '0,0,0';
+    const key = url.length + url.slice(0, 40) + '|' + dim + '|' + rgb;
+    if(layer.dataset.key !== key){
+      layer.dataset.key = key;
+      layer.style.backgroundImage = `linear-gradient(rgba(${rgb},${dim}),rgba(${rgb},${dim})),url("${url.replace(/"/g, '%22')}")`;
+    }
+    layer.style.display = 'block';
+    document.body.classList.add('cx-hasbg');
+  }
+
+  function applyCustom(){
+    const root = document.documentElement, s = (P && P.settings) || {};
+    const c = s.customColors;
+    if(c && c.enabled){
+      Object.entries(derive(c)).forEach(([k, v]) => root.style.setProperty(k, v));
+      root.classList.add('cx-custom');
+    } else root.classList.remove('cx-custom');
+    root.style.setProperty('--bg-rgb', hex2rgb(cssVar('--bg')).join(','));
+
+    const e = s.editor || {};
+    e.fs ? root.style.setProperty('--ed-fs', e.fs + 'px') : root.style.removeProperty('--ed-fs');
+    e.lh ? root.style.setProperty('--ed-lh', String(e.lh)) : root.style.removeProperty('--ed-lh');
+    e.w  ? root.style.setProperty('--ed-w', e.w === 'full' ? '100%' : e.w + 'px') : root.style.removeProperty('--ed-w');
+    applyBg();
+  }
+
+  /* Engancharse a applyTheme y a render */
+  const originalApplyTheme = applyTheme;
+  applyTheme = function(){
+    const out = originalApplyTheme.apply(this, arguments);
+    try{ applyCustom(); }catch(err){ console.error('Personalización:', err); }
+    return out;
+  };
+  const originalRender = render;
+  render = function(){
+    const out = originalRender.apply(this, arguments);
+    try{ applyCustom(); }catch(err){ console.error('Personalización:', err); }
+    return out;
+  };
+
+  /* ---------- Bloques dentro de Ajustes ---------- */
+  function colorsSection(){
+    const sec = make(`<div class="paper cx-sec">
+      <h3 style="margin-bottom:10px">🎨 Mis colores</h3>
+      <p class="hint" style="margin-bottom:8px">Elige 5 colores y el resto del diseño se calcula solo. Para volver a un tema, elígelo arriba.</p>
+      <div class="settings-row"><label>Usar mis colores</label><input type="checkbox" data-c-on style="width:22px;height:22px"></div>
+      ${[['bg','Fondo'],['paper','Papel (tarjetas)'],['ink','Texto'],['accent','Acento'],['line','Bordes']].map(([k, l]) =>
+        `<div class="settings-row"><label>${l}</label><input type="color" data-c="${k}"></div>`).join('')}
+      <div data-c-msg></div>
+      <div class="settings-row" style="border-bottom:none"><label></label><button class="btn small" data-c-reset>Restablecer colores</button></div>
+    </div>`);
+    const on = sec.querySelector('[data-c-on]'), msg = sec.querySelector('[data-c-msg]');
+    function sync(){
+      const cc = P.settings.customColors, vals = (cc && cc.enabled) ? cc : (cc || curColors());
+      on.checked = !!(cc && cc.enabled);
+      sec.querySelectorAll('[data-c]').forEach(i => { i.value = vals[i.dataset.c] || '#000000'; });
+      const v = (cc && cc.enabled) ? cc : curColors();
+      const r = Math.min(contrast(v.ink, v.bg), contrast(v.ink, v.paper));
+      msg.innerHTML = r < 4.5
+        ? `<div class="cx-warn">⚠ El texto se lee con dificultad sobre estos fondos (contraste ${r.toFixed(1)}:1). Lo recomendable es 4.5:1 o más.</div>`
+        : `<div class="cx-ok">Legibilidad correcta (contraste ${r.toFixed(1)}:1).</div>`;
+    }
+    on.onchange = () => {
+      const cc = P.settings.customColors || curColors();
+      cc.enabled = on.checked; P.settings.customColors = cc;
+      applyTheme(); touch(); sync();
+    };
+    sec.querySelectorAll('[data-c]').forEach(i => {
+      i.oninput = () => {
+        const cc = P.settings.customColors || curColors();
+        cc[i.dataset.c] = i.value; cc.enabled = true; P.settings.customColors = cc;
+        applyTheme(); touch();
+        on.checked = true;
+        const r = Math.min(contrast(cc.ink, cc.bg), contrast(cc.ink, cc.paper));
+        msg.innerHTML = r < 4.5
+          ? `<div class="cx-warn">⚠ El texto se lee con dificultad sobre estos fondos (contraste ${r.toFixed(1)}:1). Lo recomendable es 4.5:1 o más.</div>`
+          : `<div class="cx-ok">Legibilidad correcta (contraste ${r.toFixed(1)}:1).</div>`;
+      };
+    });
+    sec.querySelector('[data-c-reset]').onclick = () => {
+      delete P.settings.customColors; applyTheme(); touch(); sync(); toast('Colores restablecidos');
+    };
+    sec._sync = sync;
+    sync();
+    return sec;
+  }
+
+  function bgSection(){
+    const sec = make(`<div class="paper cx-sec">
+      <h3 style="margin-bottom:10px">🖼 Imagen de fondo</h3>
+      <p class="hint" style="margin-bottom:8px">Un enlace viaja con el proyecto. Una foto subida se guarda solo en este dispositivo.</p>
+      <div class="settings-row"><label>Tipo de fondo</label>
+        <select data-b-mode>
+          <option value="none">Sin imagen</option>
+          <option value="url">Enlace de internet</option>
+          <option value="upload">Foto de este dispositivo</option>
+        </select></div>
+      <div class="settings-row" data-b-url-row><label>Enlace de la imagen</label>
+        <input type="text" inputmode="url" autocapitalize="off" autocomplete="off" class="cx-url" data-b-url placeholder="https://…">
+        <button class="btn small" data-b-url-ok>Aplicar</button></div>
+      <div class="settings-row" data-b-file-row><label>Foto</label>
+        <button class="btn small" data-b-pick>📷 Elegir foto…</button>
+        <input type="file" accept="image/*" data-b-file hidden>
+        <span class="cx-stat" data-b-stat></span></div>
+      <div class="settings-row" data-b-dim-row><label>Oscurecer imagen (para leer mejor)</label>
+        <input type="range" class="cx-range" min="0" max="90" step="5" data-b-dim><span class="cx-val" data-b-dimval></span></div>
+      <div class="settings-row" style="border-bottom:none" data-b-clear-row><label></label>
+        <button class="btn small" data-b-clear>Quitar imagen</button></div>
+    </div>`);
+    const q = s => sec.querySelector(s);
+    const mode = q('[data-b-mode]'), url = q('[data-b-url]'), stat = q('[data-b-stat]');
+    const dim = q('[data-b-dim]'), dimVal = q('[data-b-dimval]');
+
+    async function refreshStat(){
+      if(bgCache[P.id] === undefined) bgCache[P.id] = await idbGet(P.id);
+      const d = bgCache[P.id];
+      stat.textContent = d ? `Guardada en este dispositivo (${Math.round(d.length * .75 / 1024)} KB)` : 'No hay foto guardada en este dispositivo';
+    }
+    function sync(){
+      const s = P.settings;
+      mode.value = s.bgMode || 'none';
+      url.value = s.bgUrl || '';
+      dim.value = s.bgDim == null ? 55 : s.bgDim;
+      dimVal.textContent = dim.value + '%';
+      q('[data-b-url-row]').hidden = mode.value !== 'url';
+      q('[data-b-file-row]').hidden = mode.value !== 'upload';
+      q('[data-b-dim-row]').hidden = mode.value === 'none';
+      q('[data-b-clear-row]').hidden = mode.value === 'none';
+      if(mode.value === 'upload') refreshStat();
+    }
+    mode.onchange = () => { P.settings.bgMode = mode.value; applyCustom(); touch(); sync(); };
+    q('[data-b-url-ok]').onclick = () => {
+      const v = url.value.trim();
+      if(!/^https?:\/\//i.test(v)){ toast('El enlace debe empezar con http:// o https://'); return; }
+      const test = new Image();
+      test.onload = () => { P.settings.bgUrl = v; P.settings.bgMode = 'url'; applyCustom(); touch(); sync(); toast('Fondo aplicado ✓'); };
+      test.onerror = () => toast('No se pudo cargar esa imagen. Revisa el enlace.');
+      test.src = v;
+    };
+    q('[data-b-pick]').onclick = () => q('[data-b-file]').click();
+    q('[data-b-file]').onchange = async e => {
+      const f = e.target.files && e.target.files[0]; e.target.value = '';
+      if(!f) return;
+      try{
+        const data = await compress(f);
+        await idbSet(P.id, data);
+        bgCache[P.id] = data;
+        P.settings.bgMode = 'upload';
+        applyCustom(); touch(); sync(); toast('Foto aplicada ✓');
+      }catch(err){ toast('No se pudo usar esa foto en este dispositivo.'); }
+    };
+    dim.oninput = () => { P.settings.bgDim = +dim.value; dimVal.textContent = dim.value + '%'; applyCustom(); touch(); };
+    q('[data-b-clear]').onclick = async () => {
+      P.settings.bgMode = 'none'; delete P.settings.bgUrl;
+      await idbDel(P.id); bgCache[P.id] = null;
+      applyCustom(); touch(); sync(); toast('Imagen quitada');
+    };
+    sync();
+    return sec;
+  }
+
+  function editorSection(){
+    const e0 = P.settings.editor || {};
+    const sec = make(`<div class="paper cx-sec">
+      <h3 style="margin-bottom:10px">✍️ Editor de texto</h3>
+      <p class="hint" style="margin-bottom:8px">Aplica a todos los editores. El ancho de columna se nota en el modo pantalla completa.</p>
+      <div class="settings-row"><label>Tamaño de letra</label>
+        <input type="range" class="cx-range" data-e="fs" min="${ED_FS.min}" max="${ED_FS.max}" step="1"><span class="cx-val" data-ev="fs"></span></div>
+      <div class="settings-row"><label>Interlineado</label>
+        <input type="range" class="cx-range" data-e="lh" min="${ED_LH.min}" max="${ED_LH.max}" step="0.05"><span class="cx-val" data-ev="lh"></span></div>
+      <div class="settings-row"><label>Ancho de columna</label>
+        <input type="range" class="cx-range" data-e="w" min="${ED_W.min}" max="${ED_W.max}" step="20"><span class="cx-val" data-ev="w"></span></div>
+      <div class="cx-prev">Así se verá tu texto. El viento arrastró las hojas por el patio vacío mientras ella contaba, una vez más, los pasos hasta la puerta de la torre.</div>
+      <div class="settings-row" style="border-bottom:none"><label></label><button class="btn small" data-e-reset>Restablecer editor</button></div>
+    </div>`);
+    const inputs = {fs: sec.querySelector('[data-e=fs]'), lh: sec.querySelector('[data-e=lh]'), w: sec.querySelector('[data-e=w]')};
+    const vals = {fs: sec.querySelector('[data-ev=fs]'), lh: sec.querySelector('[data-ev=lh]'), w: sec.querySelector('[data-ev=w]')};
+    function sync(){
+      const e = P.settings.editor || {};
+      inputs.fs.value = e.fs || ED_FS.def;
+      inputs.lh.value = e.lh || ED_LH.def;
+      inputs.w.value  = e.w === 'full' ? ED_W.max : (e.w || ED_W.def);
+      vals.fs.textContent = inputs.fs.value + ' px';
+      vals.lh.textContent = (+inputs.lh.value).toFixed(2);
+      vals.w.textContent  = (+inputs.w.value >= ED_W.max) ? 'Completo' : inputs.w.value + ' px';
+    }
+    function update(){
+      const e = P.settings.editor || (P.settings.editor = {});
+      e.fs = +inputs.fs.value; e.lh = +inputs.lh.value;
+      e.w = (+inputs.w.value >= ED_W.max) ? 'full' : +inputs.w.value;
+      vals.fs.textContent = e.fs + ' px';
+      vals.lh.textContent = e.lh.toFixed(2);
+      vals.w.textContent  = e.w === 'full' ? 'Completo' : e.w + ' px';
+      applyCustom(); touch();
+    }
+    Object.values(inputs).forEach(i => i.oninput = update);
+    sec.querySelector('[data-e-reset]').onclick = () => { delete P.settings.editor; applyCustom(); touch(); sync(); toast('Editor restablecido'); };
+    sync();
+    return sec;
+  }
+
+  const originalSettingsView = VIEWS.settings;
+  VIEWS.settings = function(){
+    const w = originalSettingsView.apply(this, arguments);
+    try{
+      const typo = w.querySelector('[data-font]');
+      const anchor = typo ? typo.closest('.paper') : null;
+      const c = colorsSection(), b = bgSection(), e = editorSection();
+      if(anchor){ anchor.after(c); c.after(b); b.after(e); }
+      else { w.appendChild(c); w.appendChild(b); w.appendChild(e); }
+
+      /* Si eliges un tema, se desactivan "Mis colores" */
+      w.querySelectorAll('.theme-card').forEach(card => card.addEventListener('click', () => {
+        const cc = P.settings.customColors;
+        if(cc && cc.enabled){ cc.enabled = false; applyTheme(); touch(); c._sync(); }
+      }));
+      /* Si "Mis colores" está activo, el selector de acento de arriba también lo cambia */
+      const acc = w.querySelector('[data-accent]');
+      if(acc) acc.addEventListener('input', () => {
+        const cc = P.settings.customColors;
+        if(cc && cc.enabled){ cc.accent = acc.value; applyTheme(); touch(); c._sync(); }
+      });
+    }catch(err){ console.error('Personalización (Ajustes):', err); }
+    return w;
+  };
+})();
+
 init();
 
 </script>
