@@ -9820,6 +9820,316 @@ html.cx-custom .editor-area pre{background:var(--bg)}
   };
 })();
 
+/* ============================================================
+   MÁS TIPOGRAFÍAS + CAMBIO DE FUENTE DENTRO DE CUALQUIER TEXTO
+   1) Ajustes → Tipografía: ahora con ~60 fuentes agrupadas por estilo.
+   2) En la barra de cada editor de texto (capítulos, personajes,
+      notas, eventos...) aparece el botón "Fuente" para cambiar la
+      letra solo del texto seleccionado (o de lo que escribas después).
+   Las fuentes vienen de Google Fonts: se descargan la primera vez
+   (necesita internet) y luego quedan guardadas.
+============================================================ */
+(function(){
+  const SER = 'ital,wght@0,400;0,700;1,400;1,700';
+  const W = 'wght@400;700';
+  const CATS = [
+    ['serif',  '📖 Elegantes (narrativa)'],
+    ['epic',   '⚔️ Épicas y fantasía'],
+    ['comic',  '💥 Cómic y acción'],
+    ['scifi',  '🚀 Ciencia ficción y retro'],
+    ['horror', '🩸 Terror y oscuras'],
+    ['sans',   '🔤 Modernas'],
+    ['hand',   '✍️ Manuscritas'],
+    ['mono',   '⌨️ Máquina de escribir'],
+    ['jp',     '🎌 Estilo japonés'],
+    ['system', '💻 Del sistema (sin internet)']
+  ];
+  /* [categoría, nombre, genérica, pesos] */
+  const RAW = [
+    ['serif','Playfair Display','serif',SER], ['serif','Cormorant Garamond','serif',SER], ['serif','EB Garamond','serif',SER],
+    ['serif','Lora','serif',SER], ['serif','Merriweather','serif',SER], ['serif','Crimson Text','serif',SER],
+    ['serif','Libre Baskerville','serif',SER], ['serif','Spectral','serif',SER], ['serif','Source Serif 4','serif',SER],
+    ['epic','Cinzel','serif',W], ['epic','Cinzel Decorative','serif',W], ['epic','MedievalSharp','cursive',''],
+    ['epic','Uncial Antiqua','fantasy',''], ['epic','Metamorphous','fantasy',''], ['epic','Almendra','serif',''],
+    ['epic','Pirata One','fantasy',''], ['epic','UnifrakturCook','fantasy','wght@700'],
+    ['comic','Bangers','cursive',''], ['comic','Anton','sans-serif',''], ['comic','Bebas Neue','sans-serif',''],
+    ['comic','Oswald','sans-serif',W], ['comic','Permanent Marker','cursive',''], ['comic','Black Ops One','fantasy',''],
+    ['scifi','Orbitron','sans-serif',W], ['scifi','Audiowide','sans-serif',''], ['scifi','Rajdhani','sans-serif',W],
+    ['scifi','Press Start 2P','monospace',''],
+    ['horror','Creepster','fantasy',''], ['horror','Eater','fantasy',''], ['horror','Butcherman','fantasy',''], ['horror','Nosifer','fantasy',''],
+    ['sans','Inter','sans-serif',W], ['sans','Roboto','sans-serif',W], ['sans','Open Sans','sans-serif',W],
+    ['sans','Montserrat','sans-serif',W], ['sans','Poppins','sans-serif',W], ['sans','Nunito','sans-serif',W],
+    ['sans','Lato','sans-serif',W], ['sans','Raleway','sans-serif',W],
+    ['hand','Dancing Script','cursive',W], ['hand','Caveat','cursive',W], ['hand','Pacifico','cursive',''],
+    ['hand','Great Vibes','cursive',''], ['hand','Satisfy','cursive',''], ['hand','Kalam','cursive',W],
+    ['hand','Indie Flower','cursive',''], ['hand','Shadows Into Light','cursive',''], ['hand','Homemade Apple','cursive',''],
+    ['mono','Special Elite','monospace',''], ['mono','Courier Prime','monospace',W], ['mono','Cutive Mono','monospace',''],
+    ['mono','IBM Plex Mono','monospace',W], ['mono','Inconsolata','monospace',W], ['mono','Roboto Mono','monospace',W],
+    ['jp','Noto Serif JP','serif',W], ['jp','Noto Sans JP','sans-serif',W], ['jp','Shippori Mincho','serif',W],
+    ['jp','Zen Maru Gothic','sans-serif',W]
+  ];
+  /* Fuentes del sistema: mantienen los mismos valores que ya existían en Ajustes */
+  const SYS = [
+    ['Georgia', "Georgia, serif"], ['Times New Roman', "'Times New Roman', serif"],
+    ['Palatino', "'Palatino Linotype', Palatino, serif"], ['Sans-serif del sistema', "system-ui, sans-serif"],
+    ['Arial', "Arial, Helvetica, sans-serif"], ['Verdana', "Verdana, Geneva, sans-serif"],
+    ['Trebuchet MS', "'Trebuchet MS', sans-serif"], ['Courier New', "'Courier New', monospace"]
+  ];
+  const FONTS = RAW.map(([cat, n, gen, spec]) => ({cat, n, gen, spec, stack: `'${n}', ${gen}`}))
+    .concat(SYS.map(([n, stack]) => ({cat:'system', n, gen:'', spec:'', stack, sys:true})));
+
+  /* ---------- Carga desde Google Fonts (con plan B si falla) ---------- */
+  const loaded = new Set();
+  function gUrl(n, spec){
+    return 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(n).replace(/%20/g, '+') +
+           (spec ? ':' + spec : '') + '&display=swap';
+  }
+  function loadFont(f){
+    if(!f || f.sys || loaded.has(f.n)) return;
+    loaded.add(f.n);
+    const link = document.createElement('link');
+    link.rel = 'stylesheet'; link.href = gUrl(f.n, f.spec);
+    link.dataset.tf = f.n;
+    if(f.spec){
+      link.onerror = () => { link.onerror = null; link.href = gUrl(f.n, ''); };
+    }
+    document.head.appendChild(link);
+  }
+  const byName = new Map(FONTS.map(f => [f.n.toLowerCase(), f]));
+  const firstFamily = s => String(s || '').split(',')[0].replace(/["']/g, '').trim();
+  const fontOf = s => byName.get(firstFamily(s).toLowerCase());
+  function scan(text){
+    if(!text) return;
+    for(const f of FONTS){ if(!f.sys && !loaded.has(f.n) && text.indexOf(f.n) !== -1) loadFont(f); }
+  }
+
+  /* ---------- Estilos ---------- */
+  const css = `
+.ed-fontbtn{min-width:70px;max-width:118px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-pop{position:fixed;z-index:130;display:none;flex-direction:column;width:340px;max-height:60vh;
+  background:linear-gradient(180deg,var(--paper2),var(--bg2));border:1px solid var(--gold-soft);border-radius:10px;
+  box-shadow:0 18px 50px #000c;overflow:hidden}
+.tf-pop.open{display:flex}
+.tf-grip{display:none}
+.tf-head{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);flex:none}
+.tf-title{flex:1;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-soft)}
+.tf-x{background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:6px;min-width:34px;height:32px;cursor:pointer;font-size:15px}
+.tf-search{padding:8px 10px 4px;flex:none}
+.tf-search input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--ink);
+  padding:9px 12px;font-family:inherit;font-size:16px}
+.tf-chips{display:flex;gap:6px;overflow-x:auto;padding:4px 10px 8px;flex:none;-webkit-overflow-scrolling:touch}
+.tf-chip{flex:none;border:1px solid var(--line);background:var(--bg2);color:var(--ink-dim);border-radius:16px;
+  padding:6px 11px;font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.tf-chip.active{border-color:var(--gold);color:var(--gold)}
+.tf-list{flex:1;min-height:0;overflow-y:auto;padding:0 8px 10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.tf-row{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;color:var(--ink);
+  border:1px solid transparent;border-radius:6px;padding:9px 10px;cursor:pointer;font-size:19px;line-height:1.25}
+.tf-row:hover{background:var(--paper2);border-color:var(--line)}
+.tf-row.cur{border-color:var(--gold-soft)}
+.tf-row.def{font-family:inherit;font-size:14px;color:var(--ink-dim)}
+.tf-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-note{font-size:11px;color:var(--muted);padding:6px 10px 2px}
+.tf-empty{padding:16px;text-align:center;color:var(--muted);font-size:13px}
+.tf-prev{margin-top:10px;padding:10px 14px;border:1px dashed var(--line2);border-radius:6px;color:var(--ink);
+  font-family:var(--body-font);font-size:17px;line-height:1.6}
+@media(max-width:820px){
+  .tf-pop{left:0 !important;right:0 !important;top:auto !important;width:auto;height:60vh;height:60dvh;
+    bottom:var(--tf-bottom,0px);max-height:var(--tf-max,none);border-radius:16px 16px 0 0;border-bottom:none;
+    padding-bottom:env(safe-area-inset-bottom,0px)}
+  .tf-grip{display:block;width:42px;height:4px;border-radius:2px;background:var(--line2);margin:7px auto 0;flex:none}
+  .tf-x{min-width:42px;height:40px}
+  .tf-row{padding:12px 10px}
+  .tf-chip{padding:8px 13px;font-size:13px}
+}`;
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ---------- Selector de fuente (ventana / hoja) ---------- */
+  const pop = document.createElement('div');
+  pop.className = 'tf-pop';
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', 'Elegir fuente');
+  pop.innerHTML = `
+    <div class="tf-grip"></div>
+    <div class="tf-head"><div class="tf-title">Fuente</div><button type="button" class="tf-x" data-x aria-label="Cerrar">✕</button></div>
+    <div class="tf-search"><input type="search" placeholder="Buscar fuente…" autocomplete="off" aria-label="Buscar fuente"></div>
+    <div class="tf-chips"></div>
+    <div class="tf-list"></div>`;
+  document.body.appendChild(pop);
+  const input = pop.querySelector('input'), chipsBox = pop.querySelector('.tf-chips'), list = pop.querySelector('.tf-list');
+  let cur = null, cat = 'serif', query = '';
+  const isMobile = () => window.innerWidth <= 820;
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  function currentFontName(){
+    try{ const f = fontOf(document.queryCommandValue('fontName')); return f ? f.n : ''; }catch(e){ return ''; }
+  }
+  function renderList(){
+    chipsBox.innerHTML = CATS.map(([id, label]) => `<button type="button" class="tf-chip${id === cat && !query ? ' active' : ''}" data-cat="${id}">${label}</button>`).join('');
+    const q = norm(query.trim());
+    const items = q ? FONTS.filter(f => norm(f.n).includes(q)).slice(0, 24) : FONTS.filter(f => f.cat === cat);
+    const now = currentFontName();
+    items.forEach(loadFont);
+    let html = `<button type="button" class="tf-row def" data-def>↺ Fuente por defecto del texto</button>`;
+    html += items.length
+      ? items.map(f => `<button type="button" class="tf-row${f.n === now ? ' cur' : ''}" data-f="${f.n}" style="font-family:${f.stack}"><span class="tf-name">${f.n}</span></button>`).join('')
+      : '<div class="tf-empty">No hay fuentes con ese nombre.</div>';
+    if(!q && cat !== 'system') html += '<div class="tf-note">Se descargan la primera vez (necesita internet) y luego quedan guardadas.</div>';
+    list.innerHTML = html;
+  }
+  function place(){
+    if(!cur) return;
+    if(isMobile()){
+      pop.style.left = pop.style.right = pop.style.top = '';
+      const vv = window.visualViewport;
+      if(vv){
+        pop.style.setProperty('--tf-bottom', Math.max(0, window.innerHeight - vv.height - vv.offsetTop) + 'px');
+        pop.style.setProperty('--tf-max', Math.max(220, vv.height - 8) + 'px');
+      }
+      return;
+    }
+    pop.style.removeProperty('--tf-bottom'); pop.style.removeProperty('--tf-max');
+    const r = cur.btn.getBoundingClientRect();
+    const w = Math.min(340, window.innerWidth - 16);
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+    const top = Math.min(r.bottom + 6, window.innerHeight - 260);
+    pop.style.left = left + 'px'; pop.style.right = 'auto'; pop.style.top = top + 'px';
+    pop.style.maxHeight = Math.max(240, window.innerHeight - top - 12) + 'px';
+  }
+  function openPicker(area, btn){
+    cur = {area, btn};
+    const now = currentFontName(), f = fontOf(now);
+    cat = f ? f.cat : cat; query = ''; input.value = '';
+    pop.classList.add('open');
+    renderList(); place();
+    list.scrollTop = 0;
+  }
+  function closePicker(){ pop.classList.remove('open'); cur = null; }
+
+  function applyFont(f){
+    if(!cur) return;
+    const {area} = cur;
+    if(savedRange && area.contains(savedRange.commonAncestorContainer)) restoreRange(area); else area.focus();
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand('fontName', false, f ? f.stack : 'inherit');
+    area.dispatchEvent(new Event('input', {bubbles:true}));
+    saveRange(area);
+    if(f) loadFont(f);
+    refreshLabels();
+    if(isMobile()) closePicker(); else renderList();
+  }
+
+  pop.addEventListener('mousedown', e => { if(e.target !== input) e.preventDefault(); });
+  pop.addEventListener('click', e => {
+    const t = e.target.closest('button'); if(!t) return;
+    if(t.dataset.x !== undefined) return closePicker();
+    if(t.dataset.cat){ cat = t.dataset.cat; query = ''; input.value = ''; renderList(); list.scrollTop = 0; return; }
+    if(t.dataset.def !== undefined) return applyFont(null);
+    if(t.dataset.f) return applyFont(byName.get(t.dataset.f.toLowerCase()));
+  });
+  input.addEventListener('input', () => { query = input.value; renderList(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && pop.classList.contains('open')) closePicker(); });
+  document.addEventListener('mousedown', e => {
+    if(pop.classList.contains('open') && !pop.contains(e.target) && !(cur && cur.btn.contains(e.target))) closePicker();
+  });
+  window.addEventListener('resize', place);
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', place);
+
+  /* ---------- Botón "Fuente" en cada editor ---------- */
+  const editors = [];
+  function refreshLabels(){
+    for(let i = editors.length - 1; i >= 0; i--){
+      if(!document.contains(editors[i].area)) editors.splice(i, 1);
+    }
+    const sel = window.getSelection();
+    if(!sel || !sel.rangeCount) return;
+    const node = sel.anchorNode;
+    editors.forEach(ed => {
+      if(node && ed.area.contains(node)){
+        const n = currentFontName();
+        ed.btn.textContent = n ? n : 'Fuente';
+        ed.btn.title = n ? 'Fuente: ' + n : 'Cambiar fuente del texto';
+      }
+    });
+  }
+  let raf = 0;
+  document.addEventListener('selectionchange', () => {
+    if(raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; try{ refreshLabels(); }catch(e){} });
+  });
+
+  const originalCreateEditor = createEditor;
+  createEditor = function(){
+    const wrap = originalCreateEditor.apply(this, arguments);
+    try{
+      const area = wrap.querySelector('.editor-area'), bar = wrap.querySelector('.ed-toolbar');
+      scan(area.innerHTML);
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'ed-fontbtn'; btn.textContent = 'Fuente'; btn.title = 'Cambiar fuente del texto';
+      btn.addEventListener('mousedown', e => e.preventDefault());
+      btn.addEventListener('click', () => {
+        if(pop.classList.contains('open') && cur && cur.btn === btn) closePicker(); else openPicker(area, btn);
+      });
+      const anchor = bar.querySelector('[data-size]');
+      if(anchor) anchor.after(btn); else bar.prepend(btn);
+      editors.push({area, btn});
+    }catch(err){ console.error('Tipografías (editor):', err); }
+    return wrap;
+  };
+
+  /* ---------- Cargar las fuentes que ya usa el proyecto y la de Ajustes ---------- */
+  let lastScan = null;
+  function loadUsed(){
+    if(!P) return;
+    const bf = fontOf(P.settings && P.settings.bodyFont);
+    if(bf) loadFont(bf);
+    if(lastScan !== P.id){
+      lastScan = P.id;
+      try{ scan(JSON.stringify(P)); }catch(e){}
+    }
+  }
+  const originalApplyTheme = applyTheme;
+  applyTheme = function(){
+    const out = originalApplyTheme.apply(this, arguments);
+    try{ loadUsed(); }catch(err){ console.error('Tipografías:', err); }
+    return out;
+  };
+  const originalRender = render;
+  render = function(){
+    closePicker();
+    const out = originalRender.apply(this, arguments);
+    try{ loadUsed(); }catch(err){ console.error('Tipografías:', err); }
+    return out;
+  };
+
+  /* ---------- Ajustes → Tipografía con todas las fuentes ---------- */
+  const originalSettingsView = VIEWS.settings;
+  VIEWS.settings = function(){
+    const w = originalSettingsView.apply(this, arguments);
+    try{
+      const sel = w.querySelector('[data-font]');
+      if(sel){
+        const current = (P.settings && P.settings.bodyFont) || '';
+        sel.innerHTML = '<option value="">Por defecto (serif)</option>' +
+          CATS.map(([id, label]) => `<optgroup label="${label}">${
+            FONTS.filter(f => f.cat === id).map(f => `<option value="${f.stack.replace(/"/g, '&quot;')}" style="font-family:${f.stack.replace(/"/g, '&quot;')}">${f.n}</option>`).join('')
+          }</optgroup>`).join('');
+        if(current && ![...sel.options].some(o => o.value === current)){
+          const o = document.createElement('option'); o.value = current; o.textContent = firstFamily(current) || 'Personalizada'; sel.appendChild(o);
+        }
+        sel.value = current;
+        const row = sel.closest('.settings-row');
+        const prev = make('<div class="tf-prev">El viento arrastró las hojas por el patio vacío mientras ella contaba, una vez más, los pasos hasta la puerta de la torre.</div>');
+        const hint = make('<p class="hint" style="margin-top:8px">Esta es la fuente base de toda la página. Dentro de cualquier texto puedes cambiarla con el botón “Fuente” de la barra del editor. Las fuentes se descargan la primera vez (necesita internet) y luego quedan guardadas.</p>');
+        (row || sel).after(prev); prev.after(hint);
+        sel.addEventListener('change', () => { const f = fontOf(sel.value); if(f) loadFont(f); });
+      }
+    }catch(err){ console.error('Tipografías (Ajustes):', err); }
+    return w;
+  };
+})();
+
 init();
 
 </script>
